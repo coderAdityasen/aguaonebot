@@ -113,15 +113,7 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Default Credentials Hint */}
-          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
-            <p className="text-[11px] text-gray-400">
-              Default credentials in <code className="bg-gray-100 px-1 py-0.5 rounded text-gray-600 font-mono">.env</code>:
-            </p>
-            <p className="text-xs font-mono text-gray-600 mt-1 font-semibold">
-              admin / aguaone@2026
-            </p>
-          </div>
+          
         </div>
       </div>
 
