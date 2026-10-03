@@ -4,6 +4,8 @@ frontend/node_modules/
 
 # Environment and Secrets (CRITICAL: Never commit .env to GitHub)
 .env
+.env.*
+.env.prod
 .env.local
 .env.*.local
 *.env
