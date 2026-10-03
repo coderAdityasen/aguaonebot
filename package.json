@@ -10,7 +10,8 @@
     "build:backend": "tsc",
     "build:frontend": "npm run build --prefix frontend",
     "build": "npm run build:frontend && npm run build:backend",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "db:reset": "node -e \"const Database = require('better-sqlite3'); const fs = require('fs'); const path = require('path'); const p = path.resolve('data/bot.db'); if (fs.existsSync(p)) { const db = new Database(p); db.exec('DELETE FROM messages; DELETE FROM notes; DELETE FROM contacts; VACUUM;'); console.log('✅ Database tables (contacts, messages, notes) cleared successfully!'); } else { console.log('No database file found to clear.'); }\""
   },
   "keywords": [
     "whatsapp",

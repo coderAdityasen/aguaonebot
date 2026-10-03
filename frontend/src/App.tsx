@@ -127,11 +127,22 @@ export const App: React.FC = () => {
     setContacts(prev => {
       const exists = prev.some(c => c.phone === latestContactUpdate.phone);
       if (!exists) {
-        return [latestContactUpdate, ...prev];
+        const matchesFilter =
+          activeFilter === 'all' ||
+          (activeFilter === 'aguaone' && latestContactUpdate.brand?.toLowerCase() === 'aguaone') ||
+          (activeFilter === 'flovax' && latestContactUpdate.brand?.toLowerCase() === 'flovax') ||
+          (activeFilter === 'qualified' && latestContactUpdate.qualified === 1) ||
+          (activeFilter === 'handoff' && (latestContactUpdate.lead_status === 'HANDOFF' || latestContactUpdate.bot_active === 0)) ||
+          (activeFilter === 'bot_active' && latestContactUpdate.bot_active === 1 && latestContactUpdate.lead_status === 'IN_PROGRESS');
+
+        if (matchesFilter) {
+          return [latestContactUpdate, ...prev];
+        }
+        return prev;
       }
       return prev.map(c => c.phone === latestContactUpdate.phone ? { ...c, ...latestContactUpdate } : c);
     });
-  }, [latestContactUpdate, isAuthenticated]);
+  }, [latestContactUpdate, isAuthenticated, activeFilter]);
 
   // Action: Human Agent sends a message
   const handleSendMessage = async (text: string) => {
@@ -214,8 +225,8 @@ export const App: React.FC = () => {
   const selectedContact = contacts.find(c => c.phone === selectedPhone) || null;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white">
-      {/* 1. Left Sidebar: Contacts List */}
+    <div className="flex h-screen w-screen overflow-hidden bg-white relative">
+      {/* 1. Left Sidebar: Contacts List (Full width on mobile when no contact selected, fixed width on md+) */}
       <ContactList
         contacts={contacts}
         selectedPhone={selectedPhone}
@@ -228,28 +239,43 @@ export const App: React.FC = () => {
         onRefresh={fetchContacts}
         onLogout={logout}
         isLoading={isLoadingContacts}
+        className={selectedPhone ? 'hidden md:flex w-full md:w-80 lg:w-96 shrink-0' : 'flex w-full md:w-80 lg:w-96 shrink-0'}
       />
 
       {/* 2. Middle Column: Active Live Chat Feed */}
-      <ChatWindow
-        contact={selectedContact}
-        messages={messages}
-        isLoading={isLoadingMessages}
-        onSendMessage={handleSendMessage}
-        onToggleBot={handleToggleBot}
-        onToggleLeadPanel={() => setShowLeadPanel(prev => !prev)}
-        showLeadPanel={showLeadPanel}
-      />
+      <div className={`flex-1 h-full min-w-0 ${selectedPhone ? 'flex' : 'hidden md:flex'}`}>
+        <ChatWindow
+          contact={selectedContact}
+          messages={messages}
+          isLoading={isLoadingMessages}
+          onSendMessage={handleSendMessage}
+          onToggleBot={handleToggleBot}
+          onToggleLeadPanel={() => setShowLeadPanel(prev => !prev)}
+          showLeadPanel={showLeadPanel}
+          onBackMobile={() => setSelectedPhone(null)}
+        />
+      </div>
 
       {/* 3. Right Column: Collapsible Lead CRM Drawer */}
       {showLeadPanel && selectedContact && (
-        <LeadCard
-          contact={selectedContact}
-          notes={notes}
-          onUpdateLeadStatus={handleUpdateLeadStatus}
-          onAddNote={handleAddNote}
-          onClose={() => setShowLeadPanel(false)}
-        />
+        <>
+          {/* Backdrop for mobile & tablet screens */}
+          <div
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-2xs transition-opacity"
+            onClick={() => setShowLeadPanel(false)}
+          />
+
+          {/* Drawer container: Slide-over on mobile/tablet, In-flow on lg+ */}
+          <div className="fixed inset-y-0 right-0 z-40 lg:static lg:z-auto h-full shadow-2xl lg:shadow-none animate-in slide-in-from-right duration-200 shrink-0">
+            <LeadCard
+              contact={selectedContact}
+              notes={notes}
+              onUpdateLeadStatus={handleUpdateLeadStatus}
+              onAddNote={handleAddNote}
+              onClose={() => setShowLeadPanel(false)}
+            />
+          </div>
+        </>
       )}
 
       {/* Meta WhatsApp & Webhook Configuration Modal */}
@@ -259,8 +285,8 @@ export const App: React.FC = () => {
         onRefreshContacts={fetchContacts}
       />
 
-      {/* Live WebSocket Connection Status Ping at Bottom Right */}
-      <div className="fixed bottom-3 right-3 z-40 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-full shadow border border-gray-200 flex items-center space-x-1.5 text-[11px] font-medium text-gray-600">
+      {/* Live WebSocket Connection Status Ping (Only on sm+ screens to not overlap mobile keyboard or send button) */}
+      <div className="hidden sm:flex fixed bottom-3 right-3 z-30 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-full shadow border border-gray-200 items-center space-x-1.5 text-[11px] font-medium text-gray-600">
         <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
         <span>{isConnected ? 'WebSocket: Live' : 'WS Reconnecting...'}</span>
       </div>

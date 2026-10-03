@@ -1,15 +1,21 @@
 export interface Contact {
   phone: string;
   name: string;
+  brand?: 'aguaone' | 'flovax' | string;
   state: string;
   lead_status: 'IN_PROGRESS' | 'HANDOFF' | 'QUALIFIED' | 'CLOSED';
   bot_active: number; // 1 = Bot active, 0 = Human in control
   city: string;
-  category: string;
+  category?: string;
   shop_status: string;
   experience: string;
   opportunity: string;
   budget: string;
+  firm_name?: string;
+  import_license?: string;
+  import_experience?: string;
+  pan_registration?: string;
+  gst_status?: string;
   qualified: number;
   unread_count: number;
   last_message: string;

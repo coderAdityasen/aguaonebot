@@ -19,7 +19,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   return (
     <div className={`flex w-full my-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`relative max-w-[85%] md:max-w-[70%] rounded-lg px-3 py-2 text-sm shadow-sm transition-all ${
+        className={`relative max-w-[88%] sm:max-w-[80%] md:max-w-[70%] rounded-lg px-3 py-2 text-sm shadow-sm transition-all ${
           !isOutbound
             ? 'bg-white text-gray-800 rounded-tl-none border border-gray-100'
             : isBot
@@ -33,12 +33,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             {isBot ? (
               <span className="flex items-center space-x-1 text-sky-700">
                 <Bot className="w-3.5 h-3.5" />
-                <span>AGUAONE Bot Automation</span>
+                <span>Bot Automation</span>
               </span>
             ) : (
               <span className="flex items-center space-x-1 text-emerald-800">
                 <User className="w-3.5 h-3.5" />
-                <span>Human Agent (Live Takeover)</span>
+                <span>Human Agent</span>
               </span>
             )}
           </div>

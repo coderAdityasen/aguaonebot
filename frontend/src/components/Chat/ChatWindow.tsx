@@ -54,36 +54,40 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-[#efeae2] relative overflow-hidden">
       {/* Chat Top Header */}
-      <div className="h-16 bg-[#f0f2f5] px-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-10">
-        <div className="flex items-center space-x-3">
+      <div className="h-16 bg-[#f0f2f5] px-3 sm:px-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-10">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1 mr-2">
           {onBackMobile && (
-            <button onClick={onBackMobile} className="md:hidden p-1 text-gray-600">
+            <button
+              onClick={onBackMobile}
+              className="md:hidden p-2 -ml-1 text-gray-700 hover:bg-gray-200 active:bg-gray-300 rounded-full transition-colors shrink-0 flex items-center justify-center"
+              title="Back to contacts"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
 
-          <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm shrink-0">
             {contact.name && contact.name !== 'Customer'
               ? contact.name.charAt(0).toUpperCase()
               : contact.phone.slice(-2)}
           </div>
 
-          <div>
-            <h2 className="font-semibold text-gray-900 text-sm leading-tight flex items-center space-x-2">
-              <span>{contact.name && contact.name !== 'Customer' ? contact.name : `Customer`}</span>
-              <span className="text-xs font-normal text-gray-500">({contact.phone})</span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold text-gray-900 text-sm leading-tight flex items-center space-x-1.5 truncate">
+              <span className="truncate">{contact.name && contact.name !== 'Customer' ? contact.name : `Customer`}</span>
+              <span className="text-xs font-normal text-gray-500 shrink-0">({contact.phone.length > 10 ? `...${contact.phone.slice(-6)}` : contact.phone})</span>
             </h2>
 
             <div className="flex items-center space-x-2 mt-0.5">
               {isBotActive ? (
-                <span className="text-[11px] text-sky-700 font-medium flex items-center space-x-1">
-                  <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-                  <span>Bot Answering ({contact.state})</span>
+                <span className="text-[11px] text-sky-700 font-medium flex items-center space-x-1 truncate">
+                  <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
+                  <span className="truncate">Bot Active ({contact.state})</span>
                 </span>
               ) : (
-                <span className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>Human Agent In Control</span>
+                <span className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 truncate">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  <span className="truncate">Human Mode</span>
                 </span>
               )}
             </div>
@@ -91,11 +95,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
           {/* Quick 1-Click Bot Toggle Switch */}
           <button
             onClick={() => onToggleBot(!isBotActive)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center space-x-1 transition-all shadow-sm ${
               isBotActive
                 ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
                 : 'bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300'
@@ -104,13 +108,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           >
             {isBotActive ? (
               <>
-                <User className="w-3.5 h-3.5" />
-                <span>Take Over (Pause Bot)</span>
+                <User className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Take Over</span>
+                <span className="sm:hidden">Pause</span>
               </>
             ) : (
               <>
-                <Bot className="w-3.5 h-3.5" />
-                <span>Resume Bot</span>
+                <Bot className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Resume Bot</span>
+                <span className="sm:hidden">Resume</span>
               </>
             )}
           </button>

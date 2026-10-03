@@ -25,6 +25,20 @@ if (fs.existsSync(schemaPath)) {
   db.exec(schemaSql);
 }
 
+// Ensure columns exist in SQLite database if upgraded from previous schema
+try {
+  const existingCols = db.pragma('table_info(contacts)') as any[];
+  const colSet = new Set(existingCols.map((c) => c.name));
+  if (!colSet.has('brand')) db.exec("ALTER TABLE contacts ADD COLUMN brand TEXT DEFAULT ''");
+  if (!colSet.has('firm_name')) db.exec("ALTER TABLE contacts ADD COLUMN firm_name TEXT DEFAULT ''");
+  if (!colSet.has('import_license')) db.exec("ALTER TABLE contacts ADD COLUMN import_license TEXT DEFAULT ''");
+  if (!colSet.has('import_experience')) db.exec("ALTER TABLE contacts ADD COLUMN import_experience TEXT DEFAULT ''");
+  if (!colSet.has('pan_registration')) db.exec("ALTER TABLE contacts ADD COLUMN pan_registration TEXT DEFAULT ''");
+  if (!colSet.has('gst_status')) db.exec("ALTER TABLE contacts ADD COLUMN gst_status TEXT DEFAULT ''");
+} catch (e) {
+  console.warn('[DB Migration Warning]:', e);
+}
+
 // Pre-compiled prepared statements for ultra-fast execution (<0.05ms)
 export const statements = {
   getContact: db.prepare('SELECT * FROM contacts WHERE phone = ?'),
@@ -40,22 +54,27 @@ export const statements = {
       (@filter = 'all') OR
       (@filter = 'handoff' AND (lead_status = 'HANDOFF' OR qualified = 1 OR bot_active = 0)) OR
       (@filter = 'bot_active' AND bot_active = 1 AND lead_status = 'IN_PROGRESS') OR
-      (@filter = 'qualified' AND qualified = 1)
+      (@filter = 'qualified' AND qualified = 1) OR
+      (@filter = 'aguaone' AND LOWER(brand) = 'aguaone') OR
+      (@filter = 'flovax' AND LOWER(brand) = 'flovax')
     ORDER BY last_message_at DESC
   `),
 
   upsertContact: db.prepare(`
     INSERT INTO contacts (
-      phone, name, state, lead_status, bot_active, 
+      phone, name, brand, state, lead_status, bot_active, 
       city, category, shop_status, experience, opportunity, budget, 
+      firm_name, import_license, import_experience, pan_registration, gst_status,
       qualified, unread_count, last_message, last_message_at, updated_at
     ) VALUES (
-      @phone, @name, @state, @lead_status, @bot_active,
+      @phone, @name, @brand, @state, @lead_status, @bot_active,
       @city, @category, @shop_status, @experience, @opportunity, @budget,
+      @firm_name, @import_license, @import_experience, @pan_registration, @gst_status,
       @qualified, @unread_count, @last_message, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     )
     ON CONFLICT(phone) DO UPDATE SET
       name = CASE WHEN excluded.name != 'Customer' THEN excluded.name ELSE contacts.name END,
+      brand = CASE WHEN excluded.brand != '' THEN excluded.brand ELSE contacts.brand END,
       state = excluded.state,
       lead_status = excluded.lead_status,
       bot_active = excluded.bot_active,
@@ -65,6 +84,11 @@ export const statements = {
       experience = excluded.experience,
       opportunity = excluded.opportunity,
       budget = excluded.budget,
+      firm_name = excluded.firm_name,
+      import_license = excluded.import_license,
+      import_experience = excluded.import_experience,
+      pan_registration = excluded.pan_registration,
+      gst_status = excluded.gst_status,
       qualified = excluded.qualified,
       unread_count = excluded.unread_count,
       last_message = excluded.last_message,
@@ -123,7 +147,7 @@ export const statements = {
   `),
 
   getQualifiedLeadsForExport: db.prepare(`
-    SELECT phone, name, city, category, shop_status, experience, opportunity, budget, lead_status, created_at, updated_at
+    SELECT phone, name, brand, city, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, created_at, updated_at
     FROM contacts
     WHERE qualified = 1 OR lead_status = 'HANDOFF'
     ORDER BY updated_at DESC

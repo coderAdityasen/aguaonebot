@@ -77,23 +77,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           disabled={disabled || isSending}
           placeholder={
             botActive
-              ? "Type to send as human agent (will pause the bot)..."
-              : "Type a WhatsApp reply to customer..."
+              ? "Type to send as agent (pauses bot)..."
+              : "Type a WhatsApp reply..."
           }
-          className="flex-1 bg-white text-gray-800 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-wa-teal border border-gray-200 transition-all placeholder:text-gray-400"
+          className="flex-1 bg-white text-gray-800 text-sm rounded-lg px-3.5 sm:px-4 py-2 sm:py-2.5 focus:outline-none focus:ring-1 focus:ring-wa-teal border border-gray-200 transition-all placeholder:text-gray-400 min-w-0"
         />
 
         <button
           onClick={handleSend}
           disabled={!text.trim() || disabled || isSending}
-          className={`p-2.5 rounded-full transition-all shadow-sm flex items-center justify-center ${
+          className={`p-2.5 rounded-full transition-all shadow-sm flex items-center justify-center shrink-0 min-w-[40px] min-h-[40px] ${
             text.trim() && !disabled && !isSending
               ? 'bg-wa-teal text-white hover:bg-wa-teal-dark active:scale-95'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
           title="Send WhatsApp message"
         >
-          <Send className="w-5 h-5" />
+          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
 

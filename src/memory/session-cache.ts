@@ -4,6 +4,7 @@ import { statements } from '../database/db';
 export interface ContactSession {
   phone: string;
   name: string;
+  brand: string; // 'aguaone' | 'flovax' | ''
   state: string;
   lead_status: string;
   bot_active: number;
@@ -13,6 +14,11 @@ export interface ContactSession {
   experience: string;
   opportunity: string;
   budget: string;
+  firm_name: string;
+  import_license: string;
+  import_experience: string;
+  pan_registration: string;
+  gst_status: string;
   qualified: number;
   unread_count: number;
   last_message: string;
@@ -54,6 +60,7 @@ export function getSession(phone: string): ContactSession {
       session = {
         phone: row.phone,
         name: row.name || 'Customer',
+        brand: row.brand || '',
         state: row.state || 'new',
         lead_status: row.lead_status || 'IN_PROGRESS',
         bot_active: typeof row.bot_active === 'number' ? row.bot_active : 1,
@@ -63,6 +70,11 @@ export function getSession(phone: string): ContactSession {
         experience: row.experience || '',
         opportunity: row.opportunity || '',
         budget: row.budget || '',
+        firm_name: row.firm_name || '',
+        import_license: row.import_license || '',
+        import_experience: row.import_experience || '',
+        pan_registration: row.pan_registration || '',
+        gst_status: row.gst_status || '',
         qualified: typeof row.qualified === 'number' ? row.qualified : 0,
         unread_count: row.unread_count || 0,
         last_message: row.last_message || ''
@@ -71,6 +83,7 @@ export function getSession(phone: string): ContactSession {
       session = {
         phone,
         name: 'Customer',
+        brand: '',
         state: 'new',
         lead_status: 'IN_PROGRESS',
         bot_active: 1,
@@ -80,6 +93,11 @@ export function getSession(phone: string): ContactSession {
         experience: '',
         opportunity: '',
         budget: '',
+        firm_name: '',
+        import_license: '',
+        import_experience: '',
+        pan_registration: '',
+        gst_status: '',
         qualified: 0,
         unread_count: 0,
         last_message: ''

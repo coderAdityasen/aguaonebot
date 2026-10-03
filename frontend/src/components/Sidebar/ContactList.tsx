@@ -14,6 +14,7 @@ interface ContactListProps {
   onRefresh: () => void;
   onLogout: () => void;
   isLoading: boolean;
+  className?: string;
 }
 
 export const ContactList: React.FC<ContactListProps> = ({
@@ -27,7 +28,8 @@ export const ContactList: React.FC<ContactListProps> = ({
   onOpenSettings,
   onRefresh,
   onLogout,
-  isLoading
+  isLoading,
+  className = ''
 }) => {
   const formatTime = (isoString?: string) => {
     if (!isoString) return '';
@@ -44,7 +46,7 @@ export const ContactList: React.FC<ContactListProps> = ({
   const handoffCount = contacts.filter(c => c.bot_active === 0 || c.lead_status === 'HANDOFF').length;
 
   return (
-    <div className="w-80 md:w-96 flex flex-col h-full bg-white border-r border-gray-200 select-none">
+    <div className={`flex flex-col h-full bg-white border-r border-gray-200 select-none ${className}`}>
       {/* Top Header */}
       <div className="h-16 bg-[#f0f2f5] px-4 flex items-center justify-between border-b border-gray-200 shrink-0">
         <div className="flex items-center space-x-3">
@@ -148,6 +150,28 @@ export const ContactList: React.FC<ContactListProps> = ({
         >
           Qualified ⭐
         </button>
+
+        <button
+          onClick={() => onFilterChange('aguaone')}
+          className={`px-3 py-1 rounded-full whitespace-nowrap flex items-center space-x-1 transition-colors ${
+            activeFilter === 'aguaone'
+              ? 'bg-emerald-600 text-white font-medium shadow-sm'
+              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+          }`}
+        >
+          <span>🇮🇳 AGUAONE</span>
+        </button>
+
+        <button
+          onClick={() => onFilterChange('flovax')}
+          className={`px-3 py-1 rounded-full whitespace-nowrap flex items-center space-x-1 transition-colors ${
+            activeFilter === 'flovax'
+              ? 'bg-sky-600 text-white font-medium shadow-sm'
+              : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'
+          }`}
+        >
+          <span>🇳🇵 FLOVAX</span>
+        </button>
       </div>
 
       {/* Conversations List */}
@@ -210,6 +234,17 @@ export const ContactList: React.FC<ContactListProps> = ({
                   </p>
 
                   <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                    {/* Brand Pill */}
+                    {contact.brand && (
+                      <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                        contact.brand.toLowerCase() === 'flovax'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 AGUAONE'}
+                      </span>
+                    )}
+
                     {/* Bot vs Human Pill */}
                     {isBotActive ? (
                       <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-sky-100 text-sky-800">

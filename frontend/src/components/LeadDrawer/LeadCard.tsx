@@ -50,17 +50,27 @@ export const LeadCard: React.FC<LeadCardProps> = ({
     window.open('/api/export/csv', '_blank');
   };
 
+  const isFlovax = contact.brand?.toLowerCase() === 'flovax';
+
   const surveyFields = [
-    { label: 'City', value: contact.city, icon: MapPin, color: 'text-rose-500' },
-    { label: 'Shop Category', value: contact.category, icon: Building2, color: 'text-blue-500' },
+    { label: 'Brand Track', value: contact.brand ? (isFlovax ? '🇳🇵 FLOVAX (Nepal)' : '🇮🇳 AGUAONE (India)') : '', icon: Building2, color: 'text-sky-500' },
+    { label: 'City / District', value: contact.city, icon: MapPin, color: 'text-rose-500' },
     { label: 'Shop Status', value: contact.shop_status, icon: Store, color: 'text-amber-500' },
     { label: 'Experience', value: contact.experience, icon: Clock, color: 'text-indigo-500' },
     { label: 'Opportunity', value: contact.opportunity, icon: Briefcase, color: 'text-purple-500' },
-    { label: 'Monthly Budget', value: contact.budget, icon: IndianRupee, color: 'text-emerald-500' }
+    { label: 'Monthly Volume', value: contact.budget, icon: IndianRupee, color: 'text-emerald-500' },
+    { label: 'Firm / Business Name', value: contact.firm_name, icon: FileText, color: 'text-cyan-600' },
+    ...(isFlovax ? [
+      { label: 'Import License', value: contact.import_license, icon: Building2, color: 'text-blue-600' },
+      { label: 'Import Experience', value: contact.import_experience, icon: Clock, color: 'text-teal-600' },
+      { label: 'PAN / Registration', value: contact.pan_registration, icon: Store, color: 'text-violet-600' }
+    ] : [
+      { label: 'GST Registration', value: contact.gst_status, icon: Building2, color: 'text-emerald-600' }
+    ])
   ];
 
   return (
-    <div className="w-80 md:w-88 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden select-none">
+    <div className="w-full sm:w-88 md:w-96 lg:w-88 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden select-none">
       {/* Header */}
       <div className="h-16 px-4 bg-[#f0f2f5] border-b border-gray-200 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-2">
@@ -69,9 +79,10 @@ export const LeadCard: React.FC<LeadCardProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 text-gray-500 hover:bg-gray-200 rounded-full transition-colors"
+          className="p-2 text-gray-500 hover:bg-gray-200 active:bg-gray-300 rounded-full transition-colors"
+          title="Close lead details"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
@@ -83,6 +94,13 @@ export const LeadCard: React.FC<LeadCardProps> = ({
           </div>
           <h3 className="font-semibold text-gray-900 text-base">{contact.name || 'Customer'}</h3>
           <p className="text-xs text-gray-500">+{contact.phone}</p>
+
+          {/* Brand Tag */}
+          {contact.brand && (
+            <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800">
+              {isFlovax ? '🇳🇵 FLOVAX Dealership' : '🇮🇳 AGUAONE Dealership'}
+            </div>
+          )}
 
           {/* Lead Status Dropdown */}
           <div className="mt-3">
@@ -106,7 +124,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center space-x-1">
-              <span>AGUAONE Survey Answers</span>
+              <span>{isFlovax ? 'FLOVAX (Nepal)' : 'AGUAONE'} Survey Answers</span>
             </h4>
             {contact.qualified ? (
               <span className="flex items-center space-x-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">

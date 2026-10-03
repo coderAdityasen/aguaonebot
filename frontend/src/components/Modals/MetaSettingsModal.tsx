@@ -260,8 +260,24 @@ export const MetaSettingsModal: React.FC<MetaSettingsModalProps> = ({
               </button>
 
               <button
+                onClick={() => { setSimText('flovax'); }}
+                className="px-2 py-1.5 bg-blue-50 border border-blue-300 text-blue-800 hover:bg-blue-100 rounded text-xs font-semibold"
+                title="Simulate FLOVAX Nepal Flow"
+              >
+                "flovax"
+              </button>
+
+              <button
+                onClick={() => { setSimText('aguaone'); }}
+                className="px-2 py-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded text-xs font-semibold"
+                title="Simulate AGUAONE India Flow"
+              >
+                "aguaone"
+              </button>
+
+              <button
                 onClick={() => { setSimText('restart'); }}
-                className="px-2.5 py-1.5 bg-white border border-sky-300 text-sky-800 hover:bg-sky-100 rounded text-xs font-medium"
+                className="px-2 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 rounded text-xs font-medium"
               >
                 "restart"
               </button>
