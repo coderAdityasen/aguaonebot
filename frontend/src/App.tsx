@@ -22,7 +22,9 @@ export const App: React.FC = () => {
 
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showLeadPanel, setShowLeadPanel] = useState(true);
+  const [showLeadPanel, setShowLeadPanel] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth >= 1024 : false;
+  });
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Fetch list of contacts (only when authenticated)
@@ -81,6 +83,9 @@ export const App: React.FC = () => {
   // When a contact is clicked
   const handleSelectContact = (phone: string) => {
     setSelectedPhone(phone);
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setShowLeadPanel(false);
+    }
     fetchConversation(phone);
   };
 
@@ -225,7 +230,7 @@ export const App: React.FC = () => {
   const selectedContact = contacts.find(c => c.phone === selectedPhone) || null;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white relative">
+    <div className="flex h-[100dvh] min-h-[100dvh] w-screen overflow-hidden bg-white relative">
       {/* 1. Left Sidebar: Contacts List (Full width on mobile when no contact selected, fixed width on md+) */}
       <ContactList
         contacts={contacts}

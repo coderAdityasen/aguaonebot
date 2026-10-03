@@ -53,16 +53,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#efeae2] relative overflow-hidden">
-      {/* Chat Top Header */}
-      <div className="h-16 bg-[#f0f2f5] px-3 sm:px-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-10">
-        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1 mr-2">
+      {/* Chat Top Header with Mobile Safe Area Inset */}
+      <div className="bg-[#f0f2f5] px-2 sm:px-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-20 min-h-[64px] pt-[env(safe-area-inset-top,0px)] py-2 shadow-xs">
+        <div className="flex items-center space-x-1.5 sm:space-x-3 min-w-0 flex-1 mr-1 sm:mr-2">
           {onBackMobile && (
             <button
+              type="button"
               onClick={onBackMobile}
-              className="md:hidden p-2 -ml-1 text-gray-700 hover:bg-gray-200 active:bg-gray-300 rounded-full transition-colors shrink-0 flex items-center justify-center"
+              className="md:hidden p-2 text-gray-700 hover:bg-gray-200 active:bg-gray-300 rounded-full transition-colors shrink-0 flex items-center justify-center cursor-pointer"
               title="Back to contacts"
+              aria-label="Back to contacts"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 text-gray-800" />
             </button>
           )}
 
@@ -73,20 +75,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-gray-900 text-sm leading-tight flex items-center space-x-1.5 truncate">
-              <span className="truncate">{contact.name && contact.name !== 'Customer' ? contact.name : `Customer`}</span>
-              <span className="text-xs font-normal text-gray-500 shrink-0">({contact.phone.length > 10 ? `...${contact.phone.slice(-6)}` : contact.phone})</span>
-            </h2>
+            <div className="flex items-center space-x-1.5 truncate">
+              <h2 className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                {contact.name && contact.name !== 'Customer' ? contact.name : `+${contact.phone}`}
+              </h2>
+              {contact.brand && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold shrink-0 ${
+                  contact.brand.toLowerCase() === 'flovax'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 AGUAONE'}
+                </span>
+              )}
+            </div>
 
             <div className="flex items-center space-x-2 mt-0.5">
+              <span className="text-[11px] text-gray-500 truncate">+{contact.phone}</span>
+              <span className="text-gray-300">•</span>
               {isBotActive ? (
                 <span className="text-[11px] text-sky-700 font-medium flex items-center space-x-1 truncate">
-                  <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
                   <span className="truncate">Bot Active ({contact.state})</span>
                 </span>
               ) : (
                 <span className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 truncate">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <span className="truncate">Human Mode</span>
                 </span>
               )}
@@ -95,11 +109,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+        <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
           {/* Quick 1-Click Bot Toggle Switch */}
           <button
             onClick={() => onToggleBot(!isBotActive)}
-            className={`px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center space-x-1 transition-all shadow-sm ${
+            className={`px-2 sm:px-3 py-1.5 rounded-full text-xs font-semibold flex items-center space-x-1 transition-all shadow-sm ${
               isBotActive
                 ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300'
                 : 'bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300'
@@ -110,13 +124,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <>
                 <User className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden sm:inline">Take Over</span>
-                <span className="sm:hidden">Pause</span>
+                <span className="sm:hidden text-[11px]">Pause</span>
               </>
             ) : (
               <>
                 <Bot className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden sm:inline">Resume Bot</span>
-                <span className="sm:hidden">Resume</span>
+                <span className="sm:hidden text-[11px]">Resume</span>
               </>
             )}
           </button>
@@ -126,7 +140,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             onClick={onToggleLeadPanel}
             title={showLeadPanel ? "Hide Lead CRM" : "Show Lead CRM"}
             className={`p-2 rounded-full transition-colors ${
-              showLeadPanel ? 'bg-gray-200 text-wa-teal' : 'text-gray-600 hover:bg-gray-200'
+              showLeadPanel ? 'bg-gray-200 text-wa-teal' : 'text-gray-600 hover:bg-gray-200 active:bg-gray-300'
             }`}
           >
             <PanelRight className="w-5 h-5" />

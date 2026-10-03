@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
+import { downloadLeadsCSV } from '../../utils/export';
+
 interface LeadCardProps {
   contact: Contact | null;
   notes: Note[];
@@ -32,6 +34,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
 }) => {
   const [newNote, setNewNote] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   if (!contact) return null;
 
@@ -46,8 +49,14 @@ export const LeadCard: React.FC<LeadCardProps> = ({
     }
   };
 
-  const handleExportCSV = () => {
-    window.open('/api/export/csv', '_blank');
+  const handleExportCSV = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      await downloadLeadsCSV({ type: 'all' });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const isFlovax = contact.brand?.toLowerCase() === 'flovax';
@@ -71,8 +80,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
 
   return (
     <div className="w-full sm:w-88 md:w-96 lg:w-88 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden select-none">
-      {/* Header */}
-      <div className="h-16 px-4 bg-[#f0f2f5] border-b border-gray-200 flex items-center justify-between shrink-0">
+      {/* Header with Safe Area Inset */}
+      <div className="min-h-[64px] px-4 bg-[#f0f2f5] border-b border-gray-200 flex items-center justify-between shrink-0 pt-[env(safe-area-inset-top,0px)] py-2 shadow-xs">
         <div className="flex items-center space-x-2">
           <FileText className="w-5 h-5 text-wa-teal" />
           <h2 className="font-semibold text-gray-800 text-sm">Lead CRM Details</h2>
@@ -208,10 +217,13 @@ export const LeadCard: React.FC<LeadCardProps> = ({
       <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 shrink-0">
         <button
           onClick={handleExportCSV}
-          className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm"
+          disabled={isExporting}
+          className={`w-full py-2 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition-colors shadow-sm ${
+            isExporting ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
+          }`}
         >
-          <Download className="w-4 h-4" />
-          <span>Export All Leads to CSV</span>
+          <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
+          <span>{isExporting ? 'Generating CSV...' : 'Export All Leads to CSV'}</span>
         </button>
       </div>
     </div>

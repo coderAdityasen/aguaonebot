@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Contact } from '../../types';
-import { Search, Bot, User, Award, Settings, RefreshCw, MessageSquare, LogOut } from 'lucide-react';
+import { Search, Bot, User, Award, Settings, RefreshCw, MessageSquare, LogOut, Download } from 'lucide-react';
+import { downloadLeadsCSV } from '../../utils/export';
 
 interface ContactListProps {
   contacts: Contact[];
@@ -31,6 +32,20 @@ export const ContactList: React.FC<ContactListProps> = ({
   isLoading,
   className = ''
 }) => {
+  const [isExporting, setIsExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = async (type: 'all' | 'qualified') => {
+    setIsExporting(true);
+    setShowExportMenu(false);
+    try {
+      const brand = activeFilter === 'aguaone' ? 'aguaone' : activeFilter === 'flovax' ? 'flovax' : 'all';
+      await downloadLeadsCSV({ type, brand });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const formatTime = (isoString?: string) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -47,8 +62,8 @@ export const ContactList: React.FC<ContactListProps> = ({
 
   return (
     <div className={`flex flex-col h-full bg-white border-r border-gray-200 select-none ${className}`}>
-      {/* Top Header */}
-      <div className="h-16 bg-[#f0f2f5] px-4 flex items-center justify-between border-b border-gray-200 shrink-0">
+      {/* Top Header with Safe Area Inset */}
+      <div className="min-h-[64px] bg-[#f0f2f5] px-3 sm:px-4 flex items-center justify-between border-b border-gray-200 shrink-0 pt-[env(safe-area-inset-top,0px)] py-2 shadow-xs">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-wa-teal text-white flex items-center justify-center font-bold text-lg shadow-sm">
             A
@@ -60,6 +75,48 @@ export const ContactList: React.FC<ContactListProps> = ({
         </div>
 
         <div className="flex items-center space-x-1 text-gray-600">
+          {/* Export Leads Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting}
+              title="Export Leads to CSV"
+              className={`p-2 hover:bg-gray-200 rounded-full transition-colors flex items-center ${
+                isExporting ? 'text-emerald-600' : ''
+              }`}
+            >
+              <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce text-emerald-600' : ''}`} />
+            </button>
+
+            {showExportMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowExportMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Export to CSV {activeFilter === 'aguaone' ? '(AGUAONE)' : activeFilter === 'flovax' ? '(FLOVAX)' : ''}
+                  </div>
+                  <button
+                    onClick={() => handleExport('qualified')}
+                    className="w-full text-left px-3 py-2 hover:bg-emerald-50 hover:text-emerald-700 flex items-center space-x-2 text-gray-700 transition-colors"
+                  >
+                    <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Qualified Leads Only</span>
+                  </button>
+                  <button
+                    onClick={() => handleExport('all')}
+                    className="w-full text-left px-3 py-2 hover:bg-emerald-50 hover:text-emerald-700 flex items-center space-x-2 text-gray-700 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                    <span>All Contacts & Leads</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={onRefresh}
             title="Refresh contacts"

@@ -147,9 +147,15 @@ export const statements = {
   `),
 
   getQualifiedLeadsForExport: db.prepare(`
-    SELECT phone, name, brand, city, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, created_at, updated_at
+    SELECT phone, name, brand, city, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
     FROM contacts
     WHERE qualified = 1 OR lead_status = 'HANDOFF'
+    ORDER BY updated_at DESC
+  `),
+
+  getAllLeadsForExport: db.prepare(`
+    SELECT phone, name, brand, city, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
+    FROM contacts
     ORDER BY updated_at DESC
   `),
 

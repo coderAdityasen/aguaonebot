@@ -48,7 +48,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="bg-[#f0f2f5] p-2.5 border-t border-gray-200 shrink-0">
+    <div className="bg-[#f0f2f5] p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] border-t border-gray-200 shrink-0">
       {/* Quick Reply Chips */}
       <div className="flex items-center space-x-1.5 mb-2 overflow-x-auto scrollbar-none py-0.5">
         <span className="text-[11px] font-semibold text-gray-400 flex items-center shrink-0">

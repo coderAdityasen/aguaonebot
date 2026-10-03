@@ -68,11 +68,18 @@ export function verifyToken(token: string): { valid: boolean; user?: TokenPayloa
 // Fastify preHandler hook to protect admin routes
 export async function requireAdminAuth(req: FastifyRequest, reply: FastifyReply) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token = '';
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if ((req.query as any)?.token) {
+    token = String((req.query as any).token).trim();
+  }
+
+  if (!token) {
     return reply.code(401).send({ error: 'Unauthorized: Admin authentication token required' });
   }
 
-  const token = authHeader.slice(7).trim();
   const { valid, user } = verifyToken(token);
 
   if (!valid || !user) {
