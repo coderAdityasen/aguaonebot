@@ -1,0 +1,14 @@
+# Caddyfile for AGUAONE WhatsApp Bot
+# Replace 'bot.yourdomain.com' with your actual domain or VPS subdomain.
+# Caddy will automatically request and renew a free Let's Encrypt SSL certificate!
+
+bot.yourdomain.com {
+    # Reverse proxy to our single Node process on port 3000
+    reverse_proxy localhost:3000 {
+        # WebSocket support headers
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

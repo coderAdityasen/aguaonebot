@@ -1,0 +1,1095 @@
+{
+  "name": "AGUAONE WhatsApp Lead Qualification Bot - Production",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "c3feb841-67f2-4ea9-b964-e532784ceebb",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1488,
+        144
+      ],
+      "webhookId": "84b51620-2dad-4c10-bcca-9c521abc7e12",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "eVMXlWNF0pjotHnY",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nif (!input.messages || !input.messages[0]) {\n  return [];\n}\n\nconst m = input.messages[0];\nconst c = input.contacts?.[0] || {};\n\nlet message = '';\nlet selectedOption = '';\nlet selectedTitle = '';\n\nif (m.type === 'text') {\n  message = m.text?.body?.trim() || '';\n}\n\nif (m.type === 'interactive') {\n  if (m.interactive?.type === 'list_reply') {\n    selectedOption = m.interactive.list_reply?.id || '';\n    selectedTitle = m.interactive.list_reply?.title || '';\n    message = selectedOption;\n  }\n\n  if (m.interactive?.type === 'button_reply') {\n    selectedOption = m.interactive.button_reply?.id || '';\n    selectedTitle = m.interactive.button_reply?.title || '';\n    message = selectedOption;\n  }\n}\n\nreturn {\n  json: {\n    phone: m.from || '',\n    name: c.profile?.name || 'Customer',\n    message,\n    selectedOption,\n    selectedTitle,\n    messageType: m.type || 'text',\n    messageId: m.id || '',\n    timestamp: m.timestamp || '',\n    receivedAt: new Date().toISOString(),\n    phoneNumberId: input.metadata?.phone_number_id || ''\n  }\n};"
+      },
+      "id": "f9b98243-9455-49e4-97e2-37c71c9a50a8",
+      "name": "Parse Incoming Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1264,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI",
+          "mode": "list",
+          "cachedResultName": "whatsapp bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "phone",
+              "lookupValue": "={{ $('Parse Incoming Message').first().json.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "af6a20f2-67d2-41fb-ba2f-3dba366d9148",
+      "name": "Get Sessions",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -592,
+        48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "obQDnxrcQTJgMH8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI",
+          "mode": "list",
+          "cachedResultName": "whatsapp bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1756076920,
+          "mode": "list",
+          "cachedResultName": "Messages",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit#gid=1756076920"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state_before",
+              "displayName": "state_before",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "incoming_message",
+              "displayName": "incoming_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "selected_option",
+              "displayName": "selected_option",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "selected_title",
+              "displayName": "selected_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state_after",
+              "displayName": "state_after",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bot_reply",
+              "displayName": "bot_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ecfe74ff-89a2-4a04-ba70-f61de02e18ba",
+      "name": "Log Message",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -144,
+        144
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "obQDnxrcQTJgMH8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI",
+          "mode": "list",
+          "cachedResultName": "whatsapp bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Conversation Router').first().json.phone }}",
+            "name": "={{ $('Conversation Router').first().json.name }}",
+            "state": "={{ $('Conversation Router').first().json.state_after }}",
+            "city": "={{ $('Conversation Router').first().json.city }}",
+            "category": "={{ $('Conversation Router').first().json.category }}",
+            "shop_status": "={{ $('Conversation Router').first().json.shop_status }}",
+            "experience": "={{ $('Conversation Router').first().json.experience }}",
+            "opportunity": "={{ $('Conversation Router').first().json.opportunity }}",
+            "budget": "={{ $('Conversation Router').first().json.budget }}",
+            "lead_status": "={{ $('Conversation Router').first().json.lead_status }}",
+            "last_option": "={{ $('Conversation Router').first().json.last_option }}",
+            "last_message": "={{ $('Conversation Router').first().json.last_message }}",
+            "selected_title": "={{ $('Conversation Router').first().json.selected_title }}",
+            "state_before": "={{ $('Conversation Router').first().json.state_before }}",
+            "state_after": "={{ $('Conversation Router').first().json.state_after }}",
+            "reply": "={{ $('Conversation Router').first().json.reply }}",
+            "replyType": "={{ $('Conversation Router').first().json.replyType }}",
+            "options": "={{ JSON.stringify($('Conversation Router').first().json.options) }}",
+            "message_id": "={{ $('Conversation Router').first().json.message_id }}",
+            "timestamp": "={{ $('Conversation Router').first().json.timestamp }}",
+            "phoneNumberId": "={{ $('Conversation Router').first().json.phoneNumberId }}",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "phone"
+          ],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_source",
+              "displayName": "lead_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "business_name",
+              "displayName": "business_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "industry",
+              "displayName": "industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "use_case",
+              "displayName": "use_case",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "team_size",
+              "displayName": "team_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "current_solution",
+              "displayName": "current_solution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timeline",
+              "displayName": "timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "budget",
+              "displayName": "budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "decision_maker",
+              "displayName": "decision_maker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "lead_status",
+              "displayName": "lead_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_option",
+              "displayName": "last_option",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_message",
+              "displayName": "last_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "selected_title",
+              "displayName": "selected_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state_before",
+              "displayName": "state_before",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state_after",
+              "displayName": "state_after",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reply",
+              "displayName": "reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "replyType",
+              "displayName": "replyType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "options",
+              "displayName": "options",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phoneNumberId",
+              "displayName": "phoneNumberId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "shop_status",
+              "displayName": "shop_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "experience",
+              "displayName": "experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opportunity",
+              "displayName": "opportunity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "bffea5b3-83c7-42ce-a672-239339b525a6",
+      "name": "Save Session",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -144,
+        -48
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "obQDnxrcQTJgMH8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "should-send-cond-1",
+              "leftValue": "={{ $('Conversation Router').first().json.replyType }}",
+              "rightValue": "none",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "11671d21-9a66-49aa-b5b5-9df181c859bc",
+      "name": "Should Send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        -48
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "100bb677-b316-4281-9e80-494e31b7358a",
+      "name": "No Reply (Qualified - Human Takeover)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        304,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v25.0/{{ $json.phoneNumberId }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        752,
+        -144
+      ],
+      "id": "d67a5db0-0805-44cf-8937-74d8fa30aae7",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "77zxU3O8dx5xQIGD",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// AGUAONE WhatsApp Lead Qualification Bot\n// Deterministic state machine. lead_status is the session lifecycle:\n// IN_PROGRESS -> HANDOFF (terminal; human takes over).\nconst incoming = $('Parse Incoming Message').first().json;\nconst session = $json || {};\n\nconst phone = incoming.phone || session.phone || '';\nconst name = incoming.name || session.name || 'Customer';\n\nconst selectedOption = (incoming.selectedOption || '').trim();\nconst rawText = (incoming.message || '').trim();\nconst selectedTitle = (incoming.selectedTitle || '').trim();\nconst lower = rawText.toLowerCase();\n\nconst QUESTIONS = {\n  city: {\n    text: 'बहुत बढ़िया! 👍\\nआप किस शहर से हैं?',\n    next: 'category',\n    options: [\n      { id: 'lucknow', title: 'Lucknow' },\n      { id: 'kanpur', title: 'Kanpur' },\n      { id: 'varanasi', title: 'Varanasi' },\n      { id: 'agra', title: 'Agra' },\n      { id: 'prayagraj', title: 'Prayagraj' },\n      { id: 'gorakhpur', title: 'Gorakhpur' },\n      { id: 'meerut', title: 'Meerut' },\n      { id: 'noida_ghaziabad', title: 'Noida/Ghaziabad' },\n      { id: 'other_city', title: 'Other' }\n    ]\n  },\n  category: {\n    text: 'आपकी दुकान किस category में आती है?',\n    next: 'shop_status',\n    options: [\n      { id: 'sanitaryware', title: 'Sanitaryware' },\n      { id: 'bathroom_fittings', title: 'Bathroom Fittings' },\n      { id: 'hardware_plumbing', title: 'Hardware / Plumbing' },\n      { id: 'building_material', title: 'Building Material' },\n      { id: 'other_category', title: 'Other' }\n    ]\n  },\n  shop_status: {\n    text: 'क्या आपकी खुद की दुकान है?',\n    next: 'experience',\n    options: [\n      { id: 'own_shop', title: 'Own Shop' },\n      { id: 'planning_new_shop', title: 'Planning New Shop' },\n      { id: 'wholesale_distributor', title: 'Wholesale/Distributor' }\n    ]\n  },\n  experience: {\n    text: 'आपकी दुकान को कितने समय से चलाया जा रहा है?',\n    next: 'opportunity',\n    options: [\n      { id: 'exp_0_1', title: '0–1 Year' },\n      { id: 'exp_1_3', title: '1–3 Years' },\n      { id: 'exp_3_5', title: '3–5 Years' },\n      { id: 'exp_5_plus', title: '5+ Years' }\n    ]\n  },\n  opportunity: {\n    text: 'आप AGUAONE में किस तरह की business opportunity देख रहे हैं?',\n    next: 'budget',\n    options: [\n      { id: 'retail_dealership', title: 'Retail Dealership' },\n      { id: 'distributor', title: 'Distributor' },\n      { id: 'wholesale', title: 'Wholesale' },\n      { id: 'product_purchase', title: 'Product Purchase' }\n    ]\n  },\n  budget: {\n    text: 'लगभग आपका monthly sanitary/bath fitting business कितना है?',\n    next: 'handoff',\n    options: [\n      { id: 'budget_below_50k', title: '₹50K से कम' },\n      { id: 'budget_50k_2l', title: '₹50K–₹2L' },\n      { id: 'budget_2l_5l', title: '₹2L–₹5L' },\n      { id: 'budget_5l_plus', title: '₹5L+' },\n      { id: 'budget_new', title: 'अभी नया शुरू कर रहा हूँ' }\n    ]\n  }\n};\n\nconst ORDER = ['city', 'category', 'shop_status', 'experience', 'opportunity', 'budget'];\nconst RESTART_WORDS = new Set(['restart', 'restart survey', 'start over']);\n\nconst boolTrue = v => v === true || String(v).toLowerCase() === 'true';\n\nconst data = {\n  phone,\n  name,\n  city: session.city || '',\n  category: session.category || '',\n  shop_status: session.shop_status || '',\n  experience: session.experience || '',\n  opportunity: session.opportunity || '',\n  budget: session.budget || '',\n  qualified: boolTrue(session.qualified),\n  last_option: '',\n  last_message: '',\n  lead_status: session.lead_status || 'IN_PROGRESS'\n};\n\nconst stateBefore = session.state || 'new';\nlet state = stateBefore;\nlet newState = state;\nlet reply = '';\nlet replyType = 'none';\nlet options = [];\nlet action = 'NO_REPLY';\n\nfunction askQuestion(key, prefix = '') {\n  const q = QUESTIONS[key];\n  replyType = 'list';\n  reply = prefix + q.text;\n  options = q.options.map(o => ({ id: o.id, title: o.title }));\n  action = 'ASK_' + key.toUpperCase();\n}\n\n// Terminal guard: once human handoff is reached, NOTHING can restart the bot.\nif (state === 'handoff' || state === 'completed' || session.lead_status === 'HANDOFF' || boolTrue(session.qualified)) {\n  newState = 'handoff';\n  data.qualified = true;\n  data.lead_status = 'HANDOFF';\n  reply = '';\n  replyType = 'none';\n  options = [];\n  action = 'HUMAN_HANDOFF_NO_REPLY';\n\n} else if (RESTART_WORDS.has(lower)) {\n  // Restart only while the lead is still in progress.\n  data.city = '';\n  data.category = '';\n  data.shop_status = '';\n  data.experience = '';\n  data.opportunity = '';\n  data.budget = '';\n  data.qualified = false;\n  data.lead_status = 'IN_PROGRESS';\n\n  askQuestion('city');\n  newState = 'city';\n  action = 'RESTART';\n\n} else {\n  // Defensive state validation.\n  if (state !== 'new' && !ORDER.includes(state)) {\n    state = 'new';\n  }\n\n  if (state === 'new') {\n    askQuestion('city');\n    newState = 'city';\n    action = 'START';\n\n  } else {\n    const q = QUESTIONS[state];\n    let matched = null;\n\n    // Interactive reply ID is authoritative.\n    if (selectedOption) {\n      matched = q.options.find(o => o.id === selectedOption);\n    }\n\n    // Free text fallback: exact title, then safe partial match.\n    if (!matched) {\n      const candidate = (selectedTitle || rawText).toLowerCase().trim();\n      if (candidate) {\n        matched = q.options.find(o => o.title.toLowerCase() === candidate)\n          || q.options.find(o =>\n            candidate.includes(o.title.toLowerCase()) ||\n            o.title.toLowerCase().includes(candidate)\n          );\n      }\n    }\n\n    if (!matched) {\n      askQuestion(\n        state,\n        'कृपया नीचे दिए गए विकल्पों में से एक चुनें 🙏\\n\\n'\n      );\n      newState = state;\n      action = 'INVALID_RETRY';\n\n    } else {\n      data[state] = matched.title;\n      data.last_option = matched.id;\n      data.last_message = rawText || selectedTitle || matched.title;\n\n      if (state === 'budget') {\n        // Q6 complete: send acknowledgement, then permanently hand off.\n        data.qualified = true;\n        data.lead_status = 'HANDOFF';\n        newState = 'handoff';\n        replyType = 'text';\n        reply = 'धन्यवाद! 🙏\\nआपकी जानकारी हमें मिल गई है।\\nहमारी team आपसे जल्द ही संपर्क करेगी।';\n        options = [];\n        action = 'QUALIFIED_HANDOFF';\n      } else {\n        const next = q.next;\n        askQuestion(next);\n        newState = next;\n        action = 'ANSWER_ACCEPTED';\n      }\n    }\n  }\n}\n\nif (!data.last_message) {\n  data.last_message = rawText || selectedTitle || '';\n}\nif (!data.last_option) {\n  data.last_option = selectedOption || '';\n}\n\nreturn {\n  json: {\n    ...data,\n    selected_title: selectedTitle,\n    state_before: stateBefore,\n    state_after: newState,\n    reply,\n    replyType,\n    options,\n    action,\n\n    // Existing Messages sheet aliases\n    incoming_message: rawText,\n    selected_option: selectedOption,\n    bot_reply: reply,\n\n    message_id: incoming.messageId || '',\n    timestamp: incoming.timestamp || '',\n    phoneNumberId: incoming.phoneNumberId || ''\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        48
+      ],
+      "id": "d67cb515-fb7a-42c7-8d1f-910811e99151",
+      "name": "Conversation Router"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Conversation Router').first().json;\n\nif (data.replyType === 'none' || !data.reply) {\n  return [];\n}\n\nlet payload;\n\nif (data.replyType === 'list') {\n  payload = {\n    messaging_product: 'whatsapp',\n    recipient_type: 'individual', // <--- ADDED THIS\n    to: data.phone,\n    type: 'interactive',\n    interactive: {\n      type: 'list',\n      body: { text: data.reply },\n      action: {\n        button: 'विकल्प चुनें',\n        sections: [\n          {\n            title: 'Options',\n            rows: data.options.map(option => ({\n              id: option.id,\n              title: option.title,\n              ...(option.description ? { description: option.description } : {})\n            }))\n          }\n        ]\n      }\n    }\n  };\n} else {\n  payload = {\n    messaging_product: 'whatsapp',\n    recipient_type: 'individual', // <--- ADDED THIS\n    to: data.phone,\n    type: 'text',\n    text: { body: data.reply }\n  };\n}\n\nreturn {\n  json: {\n    phone: data.phone,\n    phoneNumberId: data.phoneNumberId,\n    replyType: data.replyType,\n    reply: data.reply,\n    payload\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -144
+      ],
+      "id": "28ec56c7-8231-41ed-99fc-ffea64b07fee",
+      "name": "Build WhatsApp Payload"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI",
+          "mode": "list",
+          "cachedResultName": "whatsapp bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1756076920,
+          "mode": "list",
+          "cachedResultName": "Messages",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit#gid=1756076920"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "message_id",
+              "lookupValue": "={{ $('Parse Incoming Message').first().json.messageId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cd838a07-7d3e-456a-becb-ad47befd854c",
+      "name": "Check Processed Message",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -1040,
+        144
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "obQDnxrcQTJgMH8k",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "a9be2b7a-3b8c-4f69-b60a-79b8dc2f15d9",
+              "leftValue": "={{ $json.message_id || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "43752ef3-500d-4508-8bef-1d238c408f49",
+      "name": "Duplicate Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -816,
+        144
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "89e4f612-450b-4bb5-8967-be367239b500",
+      "name": "Ignore Duplicate",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI",
+          "mode": "list",
+          "cachedResultName": "whatsapp bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1756076920,
+          "mode": "list",
+          "cachedResultName": "Messages",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1MpSU82DpwnlI6wGX1dZcU2iPPKs_cHl9R7mapcEFGrI/edit#gid=1756076920"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now }}",
+            "phone": "={{ $('Conversation Router').first().json.phone }}",
+            "name": "={{ $('Conversation Router').first().json.name }}",
+            "state_before": "={{ $('Conversation Router').first().json.state_before }}",
+            "incoming_message": "",
+            "selected_option": "",
+            "selected_title": "",
+            "state_after": "={{ $('Conversation Router').first().json.state_after }}",
+            "bot_reply": "={{ $('Conversation Router').first().json.reply }}",
+            "message_id": "={{ 'out_' + $('Conversation Router').first().json.message_id + '_' + $execution.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state_before",
+              "displayName": "state_before",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "incoming_message",
+              "displayName": "incoming_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "selected_option",
+              "displayName": "selected_option",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "selected_title",
+              "displayName": "selected_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "state_after",
+              "displayName": "state_after",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bot_reply",
+              "displayName": "bot_reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "eca3117d-2cbe-44f2-9bb7-b75e7cb8748a",
+      "name": "Log Outgoing Message",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        528,
+        -144
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "obQDnxrcQTJgMH8k",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Incoming Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "Check Processed Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sessions": {
+      "main": [
+        [
+          {
+            "node": "Conversation Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Router": {
+      "main": [
+        [
+          {
+            "node": "Save Session",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WhatsApp Payload": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Session": {
+      "main": [
+        [
+          {
+            "node": "Should Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send?": {
+      "main": [
+        [
+          {
+            "node": "Build WhatsApp Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Reply (Qualified - Human Takeover)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Processed Message": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Message?": {
+      "main": [
+        [
+          {
+            "node": "Ignore Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Log Outgoing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1ddc7e27-7ccb-4fd2-9657-2ab9464d896c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f32fd38e04fce5a9150d46ff095beffab887fe8f833d9b8e9f445550b26f2915"
+  },
+  "nodeGroups": [],
+  "id": "6743m4gwkszuFao4",
+  "tags": []
+}
