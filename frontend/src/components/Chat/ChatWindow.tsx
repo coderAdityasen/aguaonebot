@@ -1,18 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Contact, Message } from '../../types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
-import { Bot, User, Phone, PanelRight, ArrowLeft } from 'lucide-react';
+import { Bot, User, Phone, PanelRight, ArrowLeft, Clock, AlertTriangle, Pencil, Check, X } from 'lucide-react';
 
 interface ChatWindowProps {
   contact: Contact | null;
   messages: Message[];
   isLoading: boolean;
-  onSendMessage: (text: string) => Promise<void>;
+  onSendMessage: (text: string) => void | Promise<void>;
+  onSendMedia?: (file: File, caption?: string) => void | Promise<void>;
   onToggleBot: (active: boolean) => Promise<void>;
   onToggleLeadPanel: () => void;
   showLeadPanel: boolean;
   onBackMobile?: () => void;
+  onUpdateName?: (name: string) => Promise<void>;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -20,20 +22,120 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   messages,
   isLoading,
   onSendMessage,
+  onSendMedia,
   onToggleBot,
   onToggleLeadPanel,
   showLeadPanel,
-  onBackMobile
+  onBackMobile,
+  onUpdateName
 }) => {
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
 
   useEffect(() => {
-    scrollToBottom();
+    setIsEditingName(false);
+    setEditedName(contact?.name && contact.name !== 'Customer' ? contact.name : '');
+  }, [contact?.phone]);
+
+  const handleStartEditName = () => {
+    setEditedName(contact?.name && contact.name !== 'Customer' ? contact.name : '');
+    setIsEditingName(true);
+    setTimeout(() => {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    }, 50);
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed || !onUpdateName) {
+      setIsEditingName(false);
+      return;
+    }
+    if (trimmed === contact?.name) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      setIsSavingName(true);
+      await onUpdateName(trimmed);
+      setIsEditingName(false);
+    } catch (err) {
+      console.error('Failed to rename contact:', err);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Instant scroll to the bottom whenever opening a chat or changing contact
+  useEffect(() => {
+    if (!isLoading && contact) {
+      scrollToBottom('auto');
+      // Re-scroll after layout paint for media bubbles
+      const timer = setTimeout(() => {
+        scrollToBottom('auto');
+      }, 70);
+      return () => clearTimeout(timer);
+    }
+  }, [contact?.phone, isLoading]);
+
+  // Smooth scroll down when new messages are received or sent
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading) {
+      scrollToBottom('smooth');
+    }
+  }, [messages.length]);
+
+  // WhatsApp Cloud API 24-Hour Customer Care Window Calculation
+  const lastInboundMsg = useMemo(() => {
+    return [...messages].reverse().find(m => m.direction === 'inbound');
   }, [messages]);
+
+  const { isWindowOpen, windowRemainingText, expiredAgoText } = useMemo(() => {
+    if (!lastInboundMsg?.timestamp) {
+      return {
+        isWindowOpen: false,
+        windowRemainingText: null,
+        expiredAgoText: 'No inbound customer message received yet'
+      };
+    }
+
+    const lastTime = new Date(lastInboundMsg.timestamp).getTime();
+    const now = Date.now();
+    const diffMs = (24 * 60 * 60 * 1000) - (now - lastTime);
+
+    if (diffMs > 0) {
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return {
+        isWindowOpen: true,
+        windowRemainingText: `${hours}h ${mins}m left`,
+        expiredAgoText: null
+      };
+    } else {
+      const pastMs = now - (lastTime + 24 * 60 * 60 * 1000);
+      const hoursPast = Math.floor(pastMs / (1000 * 60 * 60));
+      const minsPast = Math.floor((pastMs % (1000 * 60 * 60)) / (1000 * 60));
+      const timeStr = hoursPast > 0 ? `${hoursPast}h ${minsPast}m ago` : `${minsPast}m ago`;
+      return {
+        isWindowOpen: false,
+        windowRemainingText: null,
+        expiredAgoText: `Expired ${timeStr}`
+      };
+    }
+  }, [lastInboundMsg?.timestamp, messages]);
 
   if (!contact) {
     return (
@@ -75,24 +177,77 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center space-x-1.5 truncate">
-              <h2 className="font-semibold text-gray-900 text-sm leading-tight truncate">
-                {contact.name && contact.name !== 'Customer' ? contact.name : `+${contact.phone}`}
-              </h2>
-              {contact.brand && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold shrink-0 ${
-                  contact.brand.toLowerCase() === 'flovax'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 AGUAONE'}
-                </span>
-              )}
-            </div>
+            {isEditingName ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSaveName();
+                }}
+                className="flex items-center space-x-1.5 py-0.5"
+              >
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setIsEditingName(false);
+                  }}
+                  placeholder="Enter contact name..."
+                  className="text-xs sm:text-sm font-semibold text-gray-900 bg-white border border-wa-teal rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-wa-teal shadow-xs max-w-[200px]"
+                  disabled={isSavingName}
+                />
+                <button
+                  type="submit"
+                  disabled={isSavingName || !editedName.trim()}
+                  className="p-1 text-emerald-600 hover:bg-emerald-100 rounded transition-colors"
+                  title="Save name"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingName(false)}
+                  disabled={isSavingName}
+                  className="p-1 text-gray-400 hover:bg-gray-200 rounded transition-colors"
+                  title="Cancel"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </form>
+            ) : (
+              <div className="flex items-center space-x-1.5 truncate group">
+                <h2
+                  onClick={handleStartEditName}
+                  className="font-semibold text-gray-900 text-sm leading-tight truncate cursor-pointer hover:text-wa-teal transition-colors"
+                  title="Click to rename user"
+                >
+                  {contact.name && contact.name !== 'Customer' ? contact.name : `+${contact.phone}`}
+                </h2>
+                <button
+                  type="button"
+                  onClick={handleStartEditName}
+                  className="p-1 text-gray-400 hover:text-wa-teal rounded transition-colors opacity-70 group-hover:opacity-100"
+                  title="Rename user"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                {contact.brand && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold shrink-0 ${
+                    contact.brand.toLowerCase() === 'flovax'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 AGUAONE'}
+                  </span>
+                )}
+              </div>
+            )}
 
-            <div className="flex items-center space-x-2 mt-0.5">
+            <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
               <span className="text-[11px] text-gray-500 truncate">+{contact.phone}</span>
-              <span className="text-gray-300">•</span>
+              <span className="text-gray-300 hidden sm:inline">•</span>
+              
               {isBotActive ? (
                 <span className="text-[11px] text-sky-700 font-medium flex items-center space-x-1 truncate">
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
@@ -102,6 +257,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 <span className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 truncate">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                   <span className="truncate">Human Mode</span>
+                </span>
+              )}
+
+              {/* 24-Hour WhatsApp Care Window Indicator */}
+              <span className="text-gray-300 hidden sm:inline">•</span>
+              {isWindowOpen ? (
+                <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-emerald-100 text-emerald-800 flex items-center space-x-1">
+                  <Clock className="w-3 h-3 text-emerald-600 shrink-0" />
+                  <span>24h Window: {windowRemainingText}</span>
+                </span>
+              ) : (
+                <span className="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-amber-100 text-amber-900 flex items-center space-x-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                  <span>24h Window Closed</span>
                 </span>
               )}
             </div>
@@ -150,6 +319,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       {/* Messages Scroll Area */}
       <div 
+        ref={messagesContainerRef}
         className="flex-1 overflow-y-auto px-4 py-3 space-y-1"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")`
@@ -171,12 +341,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply Input Bar */}
-      <MessageInput
-        onSendMessage={onSendMessage}
-        disabled={isLoading}
-        botActive={isBotActive}
-      />
+      {/* 24-Hour Window Closed Banner OR Active Message Input Bar */}
+      {!isWindowOpen ? (
+        <div className="bg-[#fff8e1] border-t border-amber-200/80 p-3.5 sm:p-4 text-center shrink-0 shadow-xs animate-in fade-in duration-150">
+          <div className="flex items-center justify-center space-x-2 text-amber-900 font-semibold text-xs sm:text-sm mb-1.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>24-Hour Customer Care Window Closed (Meta Policy)</span>
+          </div>
+          <p className="text-xs text-amber-800 max-w-xl mx-auto leading-relaxed">
+            Meta WhatsApp Cloud API policy restricts businesses from sending free-form messages, images, or files after 24 hours of customer inactivity.
+            {expiredAgoText ? ` (${expiredAgoText})` : ''}
+          </p>
+          <div className="mt-2.5 inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-100 text-[11px] font-medium text-amber-900 border border-amber-300">
+            <span>🔒 Sending locked until customer sends a new message to reopen the 24h window.</span>
+          </div>
+        </div>
+      ) : (
+        <MessageInput
+          onSendMessage={onSendMessage}
+          onSendMedia={onSendMedia}
+          disabled={isLoading}
+          botActive={isBotActive}
+        />
+      )}
     </div>
   );
 };

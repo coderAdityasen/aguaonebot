@@ -30,11 +30,13 @@ export interface Message {
   phone: string;
   direction: 'inbound' | 'outbound';
   sender_type: 'customer' | 'bot' | 'agent';
-  message_type: 'text' | 'interactive' | 'image' | 'template';
+  message_type: 'text' | 'interactive' | 'image' | 'video' | 'document' | 'audio' | 'template';
   content: string;
+  media_url?: string;
+  caption?: string;
   selected_option?: string | null;
   selected_title?: string | null;
-  status?: 'sent' | 'delivered' | 'read' | 'failed';
+  status?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
   timestamp: string;
 }
 

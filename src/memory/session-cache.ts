@@ -22,6 +22,9 @@ export interface ContactSession {
   qualified: number;
   unread_count: number;
   last_message: string;
+  last_message_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // In-memory cache holding up to 5,000 active sessions (~3MB RAM)
@@ -55,6 +58,7 @@ export function isDuplicateMessage(msgId: string): boolean {
 export function getSession(phone: string): ContactSession {
   let session = sessionCache.get(phone);
   if (!session) {
+    const nowIso = new Date().toISOString();
     const row = statements.getContact.get(phone) as any;
     if (row) {
       session = {
@@ -77,7 +81,10 @@ export function getSession(phone: string): ContactSession {
         gst_status: row.gst_status || '',
         qualified: typeof row.qualified === 'number' ? row.qualified : 0,
         unread_count: row.unread_count || 0,
-        last_message: row.last_message || ''
+        last_message: row.last_message || '',
+        last_message_at: row.last_message_at || nowIso,
+        created_at: row.created_at || nowIso,
+        updated_at: row.updated_at || nowIso
       };
     } else {
       session = {
@@ -100,7 +107,10 @@ export function getSession(phone: string): ContactSession {
         gst_status: '',
         qualified: 0,
         unread_count: 0,
-        last_message: ''
+        last_message: '',
+        last_message_at: nowIso,
+        created_at: nowIso,
+        updated_at: nowIso
       };
     }
     sessionCache.set(phone, session);
@@ -109,6 +119,9 @@ export function getSession(phone: string): ContactSession {
 }
 
 export function updateSession(session: ContactSession) {
+  const now = new Date().toISOString();
+  session.last_message_at = now;
+  session.updated_at = now;
   sessionCache.set(session.phone, session);
   // Asynchronous write-behind persistence
   setImmediate(() => {

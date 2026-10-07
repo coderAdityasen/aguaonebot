@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
+import fastifyMultipart from '@fastify/multipart';
 import path from 'path';
 import fs from 'fs';
 import { config } from './config/env';
@@ -25,6 +26,32 @@ async function bootstrap() {
   await fastify.register(cors, {
     origin: '*',
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS']
+  });
+
+  // Enable Multipart File Uploads (up to 50MB)
+  await fastify.register(fastifyMultipart, {
+    limits: {
+      fileSize: 50 * 1024 * 1024
+    }
+  });
+
+  // Serve persistent user-uploaded media files
+  const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  await fastify.register(fastifyStatic, {
+    root: uploadsDir,
+    prefix: '/uploads/',
+    decorateReply: false,
+    setHeaders: (res, pathName) => {
+      const base = path.basename(pathName);
+      // Clean internal timestamp prefix for clean client download name
+      const cleanName = base.replace(/^(?:inbound_|document_|image_|video_|audio_)?\d+_[a-z0-9]*_?/i, '');
+      const downloadName = cleanName || base;
+      res.setHeader('Content-Disposition', `inline; filename="${downloadName}"`);
+    }
   });
 
   // Initialize Real-time WebSocket Server
@@ -70,8 +97,8 @@ async function bootstrap() {
 
     // Client-side SPA routing fallback
     fastify.setNotFoundHandler((req, reply) => {
-      if (req.raw.url && req.raw.url.startsWith('/api')) {
-        return reply.code(404).send({ error: 'Endpoint not found' });
+      if (req.raw.url && (req.raw.url.startsWith('/api') || req.raw.url.startsWith('/uploads'))) {
+        return reply.code(404).send({ error: 'Endpoint or file not found' });
       }
       return reply.sendFile('index.html');
     });

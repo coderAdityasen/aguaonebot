@@ -51,19 +51,46 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
     return { success: true, bot_active: newStatus, contact: updated };
   });
 
+  // PATCH /api/contacts/:phone/name
+  fastify.patch('/api/contacts/:phone/name', async (req, reply) => {
+    const { phone } = req.params as { phone: string };
+    const body = req.body as { name: string };
+    const newName = (body.name || '').trim();
+
+    if (!newName) {
+      return reply.code(400).send({ error: 'Name cannot be empty' });
+    }
+
+    statements.updateContactName.run(newName, phone);
+    const session = getSession(phone);
+    session.name = newName;
+    updateSession(session);
+
+    const updated = statements.getContact.get(phone) as any;
+    broadcastContactUpdate(updated || session);
+
+    return { success: true, contact: updated || session };
+  });
+
   // PATCH /api/contacts/:phone/lead
   fastify.patch('/api/contacts/:phone/lead', async (req, reply) => {
     const { phone } = req.params as { phone: string };
-    const body = req.body as { lead_status?: string; qualified?: number };
+    const body = req.body as { lead_status?: string; qualified?: number; name?: string };
 
     const session = getSession(phone);
+    if (body.name && body.name.trim()) {
+      const newName = body.name.trim();
+      statements.updateContactName.run(newName, phone);
+      session.name = newName;
+    }
     if (body.lead_status) session.lead_status = body.lead_status;
     if (typeof body.qualified === 'number') session.qualified = body.qualified;
 
     updateSession(session);
-    broadcastContactUpdate(session);
+    const updated = statements.getContact.get(phone) as any;
+    broadcastContactUpdate(updated || session);
 
-    return { success: true, contact: session };
+    return { success: true, contact: updated || session };
   });
 
   // POST /api/contacts/:phone/reset-unread

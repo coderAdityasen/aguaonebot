@@ -19,26 +19,6 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       leads = leads.filter(l => (l.brand || '').toLowerCase() === brandFilter);
     }
 
-    const headers = [
-      'Phone',
-      'Name',
-      'Brand',
-      'City',
-      'Shop Status',
-      'Experience',
-      'Opportunity',
-      'Monthly Budget',
-      'Firm Name',
-      'Import License',
-      'Import Experience',
-      'PAN Registration',
-      'GST Status',
-      'Lead Status',
-      'Bot Active',
-      'Created At',
-      'Last Updated'
-    ];
-
     const escapeCsv = (str: any) => {
       const val = str === null || str === undefined ? '' : String(str);
       if (val.includes(',') || val.includes('"') || val.includes('\n') || val.includes('\r')) {
@@ -47,30 +27,127 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       return val;
     };
 
+    let headers: string[] = [];
+    let rowBuilder: (lead: any) => string[];
+
+    if (brandFilter === 'flovax') {
+      headers = [
+        'Phone',
+        'Name',
+        'Brand',
+        'City / District',
+        'Shop Status',
+        'Experience',
+        'Opportunity',
+        'Monthly Budget',
+        'Firm Name',
+        'Import License',
+        'Import Experience',
+        'PAN Registration',
+        'Lead Status',
+        'Bot Active',
+        'Created At',
+        'Last Updated'
+      ];
+      rowBuilder = (lead: any) => [
+        escapeCsv(lead.phone),
+        escapeCsv(lead.name),
+        escapeCsv(lead.brand ? lead.brand.toUpperCase() : 'FLOVAX'),
+        escapeCsv(lead.city),
+        escapeCsv(lead.shop_status),
+        escapeCsv(lead.experience),
+        escapeCsv(lead.opportunity),
+        escapeCsv(lead.budget),
+        escapeCsv(lead.firm_name),
+        escapeCsv(lead.import_license),
+        escapeCsv(lead.import_experience),
+        escapeCsv(lead.pan_registration),
+        escapeCsv(lead.lead_status),
+        escapeCsv(lead.bot_active === 0 ? 'No (Human Handoff)' : 'Yes (Bot Active)'),
+        escapeCsv(lead.created_at),
+        escapeCsv(lead.updated_at)
+      ];
+    } else if (brandFilter === 'aguaone') {
+      headers = [
+        'Phone',
+        'Name',
+        'Brand',
+        'City',
+        'Category',
+        'Shop Status',
+        'Experience',
+        'Opportunity',
+        'Monthly Budget',
+        'GST Status',
+        'Lead Status',
+        'Bot Active',
+        'Created At',
+        'Last Updated'
+      ];
+      rowBuilder = (lead: any) => [
+        escapeCsv(lead.phone),
+        escapeCsv(lead.name),
+        escapeCsv(lead.brand ? lead.brand.toUpperCase() : 'AGUAONE'),
+        escapeCsv(lead.city),
+        escapeCsv(lead.category),
+        escapeCsv(lead.shop_status),
+        escapeCsv(lead.experience),
+        escapeCsv(lead.opportunity),
+        escapeCsv(lead.budget),
+        escapeCsv(lead.gst_status),
+        escapeCsv(lead.lead_status),
+        escapeCsv(lead.bot_active === 0 ? 'No (Human Handoff)' : 'Yes (Bot Active)'),
+        escapeCsv(lead.created_at),
+        escapeCsv(lead.updated_at)
+      ];
+    } else {
+      // Unified sheet for All brands
+      headers = [
+        'Phone',
+        'Name',
+        'Brand',
+        'City',
+        'Category',
+        'Shop Status',
+        'Experience',
+        'Opportunity',
+        'Monthly Budget',
+        'Firm Name',
+        'Import License',
+        'Import Experience',
+        'PAN Registration',
+        'GST Status',
+        'Lead Status',
+        'Bot Active',
+        'Created At',
+        'Last Updated'
+      ];
+      rowBuilder = (lead: any) => [
+        escapeCsv(lead.phone),
+        escapeCsv(lead.name),
+        escapeCsv(lead.brand ? lead.brand.toUpperCase() : ''),
+        escapeCsv(lead.city),
+        escapeCsv(lead.category),
+        escapeCsv(lead.shop_status),
+        escapeCsv(lead.experience),
+        escapeCsv(lead.opportunity),
+        escapeCsv(lead.budget),
+        escapeCsv(lead.firm_name),
+        escapeCsv(lead.import_license),
+        escapeCsv(lead.import_experience),
+        escapeCsv(lead.pan_registration),
+        escapeCsv(lead.gst_status),
+        escapeCsv(lead.lead_status),
+        escapeCsv(lead.bot_active === 0 ? 'No (Human Handoff)' : 'Yes (Bot Active)'),
+        escapeCsv(lead.created_at),
+        escapeCsv(lead.updated_at)
+      ];
+    }
+
     const csvRows = [headers.join(',')];
 
     for (const lead of leads) {
-      csvRows.push(
-        [
-          escapeCsv(lead.phone),
-          escapeCsv(lead.name),
-          escapeCsv(lead.brand ? lead.brand.toUpperCase() : ''),
-          escapeCsv(lead.city),
-          escapeCsv(lead.shop_status),
-          escapeCsv(lead.experience),
-          escapeCsv(lead.opportunity),
-          escapeCsv(lead.budget),
-          escapeCsv(lead.firm_name),
-          escapeCsv(lead.import_license),
-          escapeCsv(lead.import_experience),
-          escapeCsv(lead.pan_registration),
-          escapeCsv(lead.gst_status),
-          escapeCsv(lead.lead_status),
-          escapeCsv(lead.bot_active === 0 ? 'No (Human Handoff)' : 'Yes (Bot Active)'),
-          escapeCsv(lead.created_at),
-          escapeCsv(lead.updated_at)
-        ].join(',')
-      );
+      csvRows.push(rowBuilder(lead).join(','));
     }
 
     // Include UTF-8 Byte Order Mark (BOM) so Excel renders international/Nepali text accurately

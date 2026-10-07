@@ -39,11 +39,15 @@ export function verifyToken(token: string): { valid: boolean; user?: TokenPayloa
     .update(encodedPayload)
     .digest('hex');
 
+  const bufProvided = Buffer.from(providedSignature);
+  const bufExpected = Buffer.from(expectedSignature);
+
+  if (bufProvided.length !== bufExpected.length) {
+    return { valid: false };
+  }
+
   // Constant-time comparison to prevent timing attacks
-  const signatureMatch = crypto.timingSafeEqual(
-    Buffer.from(providedSignature),
-    Buffer.from(expectedSignature)
-  );
+  const signatureMatch = crypto.timingSafeEqual(bufProvided, bufExpected);
 
   if (!signatureMatch) {
     return { valid: false };

@@ -25,6 +25,7 @@
   "license": "ISC",
   "dependencies": {
     "@fastify/cors": "^10.0.1",
+    "@fastify/multipart": "^10.1.2",
     "@fastify/static": "^8.0.4",
     "axios": "^1.7.9",
     "better-sqlite3": "^11.8.1",

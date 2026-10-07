@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Message, Contact } from '../types';
+import { useAuth } from './AuthContext';
 
 interface SocketContextValue {
   socket: Socket | null;
@@ -17,16 +18,28 @@ const SocketContext = createContext<SocketContextValue>({
 });
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { token, isAuthenticated } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [latestMessage, setLatestMessage] = useState<Message | null>(null);
   const [latestContactUpdate, setLatestContactUpdate] = useState<Contact | null>(null);
 
   useEffect(() => {
+    if (!isAuthenticated || !token) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+        setIsConnected(false);
+      }
+      return;
+    }
+
     // In dev, Vite proxies /socket.io to :3000. In prod, same origin.
     const s = io(window.location.origin, {
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
+      auth: { token },
+      query: { token },
+      reconnectionAttempts: 15,
       reconnectionDelay: 1000
     });
 
@@ -51,7 +64,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       s.disconnect();
     };
-  }, []);
+  }, [token, isAuthenticated]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected, latestMessage, latestContactUpdate }}>

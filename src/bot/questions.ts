@@ -30,7 +30,7 @@ export const BRAND_CHOOSER: QuestionStep = {
 export const FLOVAX_QUESTIONS: Record<string, QuestionStep> = {
   city: {
     type: 'list',
-    text: 'धेरै राम्रो! 👍\nतपाईं नेपालको कुन शहर/जिल्लाबाट हुनुहुन्छ?',
+    text: 'धेरै राम्रो! 👍\nतपाईं नेपालको कुन शहर/जिल्लाबाट हुनुहुन्छ?\n(सूचीबाट छनौट गर्नुहोस् वा आफ्नो शहरको नाम लेख्नुहोस्)',
     next: 'shop_status',
     options: [
       { id: 'ktm', title: 'काठमाडौं', description: 'Kathmandu' },
@@ -42,7 +42,7 @@ export const FLOVAX_QUESTIONS: Record<string, QuestionStep> = {
       { id: 'bharatpur', title: 'भरतपुर', description: 'Bharatpur' },
       { id: 'butwal', title: 'बुटवल', description: 'Butwal' },
       { id: 'nepalgunj', title: 'नेपालगञ्ज', description: 'Nepalgunj' },
-      { id: 'other', title: 'अन्य', description: 'Other' }
+      { id: 'other', title: 'अन्य (शहर लेख्नुहोस्)', description: 'Other City' }
     ]
   },
   shop_status: {
@@ -99,10 +99,10 @@ export const FLOVAX_QUESTIONS: Record<string, QuestionStep> = {
     text: 'के तपाईंको फर्मसँग आयात (Import) गर्ने लाइसेन्स छ?',
     next: 'import_experience',
     options: [
-      { id: 'license_yes', title: 'छ — उपलब्ध छ', description: 'आयात लाइसेन्स उपलब्ध छ' },
-      { id: 'license_no', title: 'छैन — लाइसेन्स छैन', description: 'आयात लाइसेन्स छैन' },
-      { id: 'license_process', title: 'आवेदन दिएको छु', description: 'प्रक्रिया चलिरहेको छ' },
-      { id: 'license_unsure', title: 'थाहा छैन', description: 'Not Sure' }
+      { id: 'license_yes', title: 'छ — उपलब्ध छ', description: 'Yes / आयात लाइसेन्स छ' },
+      { id: 'license_no', title: 'छैन — लाइसेन्स छैन', description: 'No / आयात लाइसेन्स छैन' },
+      { id: 'license_process', title: 'आवेदन दिएको छु', description: 'In Process / प्रक्रियामा छ' },
+      { id: 'license_unsure', title: 'थाहा छैन', description: 'Not Sure (थाहा छैन)' }
     ]
   },
   import_experience: {

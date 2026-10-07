@@ -149,20 +149,112 @@ export const App: React.FC = () => {
     });
   }, [latestContactUpdate, isAuthenticated, activeFilter]);
 
-  // Action: Human Agent sends a message
+  // Action: Human Agent sends a text message (Optimistic + Background Dispatch)
   const handleSendMessage = async (text: string) => {
     if (!selectedPhone) return;
+    const currentPhone = selectedPhone;
+    const tempId = `temp_txt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const nowIso = new Date().toISOString();
+
+    const optimisticMsg: Message = {
+      whatsapp_message_id: tempId,
+      phone: currentPhone,
+      direction: 'outbound',
+      sender_type: 'agent',
+      message_type: 'text',
+      content: text,
+      status: 'pending',
+      timestamp: nowIso
+    };
+
+    // 1. Immediately inject into chat UI
+    setMessages(prev => [...prev, optimisticMsg]);
+    setContacts(prev => prev.map(c => {
+      if (c.phone === currentPhone) {
+        return { ...c, last_message: text, last_message_at: nowIso };
+      }
+      return c;
+    }));
+
+    // 2. Dispatch in background
     try {
       const res = await axios.post('/api/messages/send', {
-        phone: selectedPhone,
+        phone: currentPhone,
         text
       });
 
-      if (res.data?.message) {
-        setMessages(prev => [...prev, res.data.message]);
+      if (res.data?.success && res.data?.message) {
+        const confirmed = res.data.message;
+        setMessages(prev => prev.map(m => m.whatsapp_message_id === tempId ? confirmed : m));
+      } else {
+        setMessages(prev => prev.map(m => m.whatsapp_message_id === tempId ? { ...m, status: 'failed' } : m));
       }
     } catch (err: any) {
-      alert(`Failed to send WhatsApp message: ${err.response?.data?.error || err.message}`);
+      console.error('Failed to send text message:', err);
+      setMessages(prev => prev.map(m => m.whatsapp_message_id === tempId ? { ...m, status: 'failed' } : m));
+    }
+  };
+
+  // Action: Human Agent sends media (Optimistic + Background Dispatch)
+  const handleSendMedia = async (file: File, caption?: string) => {
+    if (!selectedPhone) return;
+    const currentPhone = selectedPhone;
+    const isVideo = file.type.startsWith('video');
+    const isDoc = !isVideo && !file.type.startsWith('image');
+    const mediaType = isVideo ? 'video' : isDoc ? 'document' : 'image';
+    const tempId = `temp_media_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const localBlobUrl = URL.createObjectURL(file);
+    const displayContent = isDoc ? file.name : (caption?.trim() || (isVideo ? '🎥 Video' : '📷 Image'));
+    const nowIso = new Date().toISOString();
+
+    const optimisticMsg: Message = {
+      whatsapp_message_id: tempId,
+      phone: currentPhone,
+      direction: 'outbound',
+      sender_type: 'agent',
+      message_type: mediaType,
+      content: displayContent,
+      media_url: localBlobUrl,
+      caption: caption?.trim() || '',
+      status: 'pending',
+      timestamp: nowIso
+    };
+
+    // 1. Immediately inject into chat UI
+    setMessages(prev => [...prev, optimisticMsg]);
+    setContacts(prev => prev.map(c => {
+      if (c.phone === currentPhone) {
+        return { ...c, last_message: displayContent, last_message_at: nowIso };
+      }
+      return c;
+    }));
+
+    // 2. Upload and dispatch in background
+    const formData = new FormData();
+    formData.append('phone', currentPhone);
+    formData.append('type', mediaType);
+    formData.append('filename', file.name);
+    if (caption && caption.trim()) {
+      formData.append('caption', caption.trim());
+    }
+    formData.append('file', file, file.name);
+
+    try {
+      const res = await axios.post('/api/messages/send-media', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (res.data?.success && res.data?.message) {
+        const confirmed = res.data.message;
+        setMessages(prev => prev.map(m => m.whatsapp_message_id === tempId ? confirmed : m));
+      } else {
+        setMessages(prev => prev.map(m => m.whatsapp_message_id === tempId ? { ...m, status: 'failed' } : m));
+      }
+    } catch (err: any) {
+      console.error('Failed to send WhatsApp media:', err);
+      setMessages(prev => prev.map(m => m.whatsapp_message_id === tempId ? { ...m, status: 'failed' } : m));
     }
   };
 
@@ -212,6 +304,24 @@ export const App: React.FC = () => {
     }
   };
 
+  // Action: Admin updates customer/user name
+  const handleUpdateName = async (newName: string) => {
+    if (!selectedPhone) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    try {
+      const res = await axios.patch(`/api/contacts/${selectedPhone}/name`, {
+        name: trimmed
+      });
+      if (res.data?.contact) {
+        setContacts(prev => prev.map(c => c.phone === selectedPhone ? { ...c, name: trimmed } : c));
+      }
+    } catch (err) {
+      console.error('Failed to update contact name:', err);
+      throw err;
+    }
+  };
+
   // Loading state while verifying token
   if (isAuthLoading) {
     return (
@@ -254,10 +364,12 @@ export const App: React.FC = () => {
           messages={messages}
           isLoading={isLoadingMessages}
           onSendMessage={handleSendMessage}
+          onSendMedia={handleSendMedia}
           onToggleBot={handleToggleBot}
           onToggleLeadPanel={() => setShowLeadPanel(prev => !prev)}
           showLeadPanel={showLeadPanel}
           onBackMobile={() => setSelectedPhone(null)}
+          onUpdateName={handleUpdateName}
         />
       </div>
 
@@ -278,6 +390,7 @@ export const App: React.FC = () => {
               onUpdateLeadStatus={handleUpdateLeadStatus}
               onAddNote={handleAddNote}
               onClose={() => setShowLeadPanel(false)}
+              onUpdateName={handleUpdateName}
             />
           </div>
         </>

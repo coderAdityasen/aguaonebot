@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Contact, Note } from '../../types';
 import { 
   Building2, 
@@ -11,7 +11,10 @@ import {
   Download, 
   Plus, 
   X,
-  FileText
+  FileText,
+  Pencil,
+  Check,
+  Layers
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -23,6 +26,7 @@ interface LeadCardProps {
   onUpdateLeadStatus: (status: string) => Promise<void>;
   onAddNote: (note: string) => Promise<void>;
   onClose: () => void;
+  onUpdateName?: (name: string) => Promise<void>;
 }
 
 export const LeadCard: React.FC<LeadCardProps> = ({
@@ -30,11 +34,21 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   notes,
   onUpdateLeadStatus,
   onAddNote,
-  onClose
+  onClose,
+  onUpdateName
 }) => {
   const [newNote, setNewNote] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  useEffect(() => {
+    setIsEditingName(false);
+    setEditedName(contact?.name && contact.name !== 'Customer' ? contact.name : '');
+  }, [contact?.phone]);
 
   if (!contact) return null;
 
@@ -64,12 +78,15 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   const surveyFields = [
     { label: 'Brand Track', value: contact.brand ? (isFlovax ? '🇳🇵 FLOVAX (Nepal)' : '🇮🇳 AGUAONE (India)') : '', icon: Building2, color: 'text-sky-500' },
     { label: 'City / District', value: contact.city, icon: MapPin, color: 'text-rose-500' },
+    ...(!isFlovax ? [
+      { label: 'Category', value: contact.category, icon: Layers, color: 'text-cyan-500' }
+    ] : []),
     { label: 'Shop Status', value: contact.shop_status, icon: Store, color: 'text-amber-500' },
     { label: 'Experience', value: contact.experience, icon: Clock, color: 'text-indigo-500' },
     { label: 'Opportunity', value: contact.opportunity, icon: Briefcase, color: 'text-purple-500' },
     { label: 'Monthly Volume', value: contact.budget, icon: IndianRupee, color: 'text-emerald-500' },
-    { label: 'Firm / Business Name', value: contact.firm_name, icon: FileText, color: 'text-cyan-600' },
     ...(isFlovax ? [
+      { label: 'Firm / Business Name', value: contact.firm_name, icon: FileText, color: 'text-cyan-600' },
       { label: 'Import License', value: contact.import_license, icon: Building2, color: 'text-blue-600' },
       { label: 'Import Experience', value: contact.import_experience, icon: Clock, color: 'text-teal-600' },
       { label: 'PAN / Registration', value: contact.pan_registration, icon: Store, color: 'text-violet-600' }
@@ -101,8 +118,82 @@ export const LeadCard: React.FC<LeadCardProps> = ({
           <div className="w-14 h-14 mx-auto rounded-full bg-wa-teal text-white flex items-center justify-center font-bold text-xl mb-2 shadow-sm">
             {contact.name && contact.name !== 'Customer' ? contact.name.charAt(0).toUpperCase() : 'C'}
           </div>
-          <h3 className="font-semibold text-gray-900 text-base">{contact.name || 'Customer'}</h3>
-          <p className="text-xs text-gray-500">+{contact.phone}</p>
+          {isEditingName ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const trimmed = editedName.trim();
+                if (!trimmed || !onUpdateName) {
+                  setIsEditingName(false);
+                  return;
+                }
+                setIsSavingName(true);
+                try {
+                  await onUpdateName(trimmed);
+                  setIsEditingName(false);
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsSavingName(false);
+                }
+              }}
+              className="mt-1 flex items-center justify-center space-x-1"
+            >
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setIsEditingName(false);
+                }}
+                placeholder="Customer Name"
+                className="text-xs font-semibold px-2 py-1 border border-wa-teal rounded bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-wa-teal max-w-[170px]"
+                autoFocus
+                disabled={isSavingName}
+              />
+              <button
+                type="submit"
+                disabled={isSavingName || !editedName.trim()}
+                className="p-1 text-emerald-600 hover:bg-emerald-100 rounded transition-colors"
+                title="Save name"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingName(false)}
+                className="p-1 text-gray-400 hover:bg-gray-200 rounded transition-colors"
+                title="Cancel"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center justify-center space-x-1.5 group mt-1">
+              <h3
+                onClick={() => {
+                  setEditedName(contact.name && contact.name !== 'Customer' ? contact.name : '');
+                  setIsEditingName(true);
+                }}
+                className="font-semibold text-gray-900 text-base cursor-pointer hover:text-wa-teal transition-colors"
+                title="Click to rename"
+              >
+                {contact.name || 'Customer'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditedName(contact.name && contact.name !== 'Customer' ? contact.name : '');
+                  setIsEditingName(true);
+                }}
+                className="p-1 text-gray-400 hover:text-wa-teal rounded-full transition-colors opacity-70 group-hover:opacity-100"
+                title="Rename customer"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-0.5">+{contact.phone}</p>
 
           {/* Brand Tag */}
           {contact.brand && (

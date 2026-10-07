@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS messages (
     sender_type TEXT NOT NULL,
     message_type TEXT NOT NULL,
     content TEXT NOT NULL,
+    media_url TEXT DEFAULT '',
+    caption TEXT DEFAULT '',
     selected_option TEXT,
     selected_title TEXT,
     status TEXT DEFAULT 'delivered',

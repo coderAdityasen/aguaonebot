@@ -1,11 +1,14 @@
 import { FastifyPluginAsync } from 'fastify';
+import fs from 'fs';
+import path from 'path';
 import { config } from '../config/env';
 import { isDuplicateMessage, getSession, updateSession } from '../memory/session-cache';
 import { routeConversation } from '../bot/router';
 import { 
   sendWhatsAppMessage, 
   buildInteractiveListPayload, 
-  buildTextPayload 
+  buildTextPayload,
+  downloadMediaFromMeta 
 } from './client';
 import { broadcastMessage, broadcastContactUpdate } from '../websocket/socket';
 import { statements, db } from '../database/db';
@@ -54,6 +57,10 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       const statusObj = changes?.statuses?.[0];
       if (statusObj) {
         console.log(`[WhatsApp Status] Message ${statusObj.id} -> ${statusObj.status} (recipient: ${statusObj.recipient_id})`);
+        if (statusObj.status === 'failed' && statusObj.errors?.length) {
+          const err = statusObj.errors[0];
+          console.error(`❌ [WhatsApp Status Failed] Code: ${err.code} | Title: ${err.title || err.message}`);
+        }
         try {
           db.prepare('UPDATE messages SET status = ? WHERE whatsapp_message_id = ?')
             .run(statusObj.status, statusObj.id);
@@ -77,6 +84,9 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     let incomingText = '';
     let selectedOption = '';
     let selectedTitle = '';
+    let mediaUrl = '';
+    let caption = '';
+    let docFilename = '';
 
     if (message.type === 'text') {
       incomingText = message.text?.body?.trim() || '';
@@ -91,6 +101,89 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         selectedTitle = interactive.button_reply?.title || '';
         incomingText = selectedTitle;
       }
+    } else if (message.type === 'image') {
+      caption = message.image?.caption || '';
+      incomingText = caption || '📷 Image';
+      const metaMediaId = message.image?.id;
+      if (metaMediaId) {
+        try {
+          const downloaded = await downloadMediaFromMeta(metaMediaId);
+          if (downloaded) {
+            const ext = downloaded.mimeType.includes('png') ? '.png' : downloaded.mimeType.includes('webp') ? '.webp' : '.jpg';
+            const filename = `inbound_${Date.now()}_${metaMediaId}${ext}`;
+            const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
+            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+            fs.writeFileSync(path.join(uploadsDir, filename), downloaded.buffer);
+            mediaUrl = `/uploads/${filename}`;
+          }
+        } catch (e) {
+          console.warn('[Webhook] Failed to download inbound image from Meta:', e);
+        }
+      }
+    } else if (message.type === 'video') {
+      caption = message.video?.caption || '';
+      incomingText = caption || '🎥 Video';
+      const metaMediaId = message.video?.id;
+      if (metaMediaId) {
+        try {
+          const downloaded = await downloadMediaFromMeta(metaMediaId);
+          if (downloaded) {
+            const ext = downloaded.mimeType.includes('quicktime') ? '.mov' : '.mp4';
+            const filename = `inbound_${Date.now()}_${metaMediaId}${ext}`;
+            const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
+            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+            fs.writeFileSync(path.join(uploadsDir, filename), downloaded.buffer);
+            mediaUrl = `/uploads/${filename}`;
+          }
+        } catch (e) {
+          console.warn('[Webhook] Failed to download inbound video from Meta:', e);
+        }
+      }
+    } else if (message.type === 'document') {
+      caption = (message.document?.caption || '').trim();
+      docFilename = (message.document?.filename || '').trim();
+      if (!docFilename || docFilename.toLowerCase() === 'untitled') {
+        docFilename = 'Document.pdf';
+      }
+      if (!docFilename.includes('.')) {
+        docFilename = `${docFilename}.pdf`;
+      }
+      incomingText = caption || docFilename;
+      const metaMediaId = message.document?.id;
+      if (metaMediaId) {
+        try {
+          const downloaded = await downloadMediaFromMeta(metaMediaId);
+          if (downloaded) {
+            const ext = path.extname(docFilename) || (downloaded.mimeType.includes('pdf') ? '.pdf' : '.bin');
+            const sanitizedBase = path.basename(docFilename, ext).replace(/[^\w\s.-]/gi, '_').trim() || 'Document';
+            const filename = `inbound_${Date.now()}_${sanitizedBase}${ext}`;
+            const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
+            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+            fs.writeFileSync(path.join(uploadsDir, filename), downloaded.buffer);
+            mediaUrl = `/uploads/${filename}`;
+          }
+        } catch (e) {
+          console.warn('[Webhook] Failed to download inbound document from Meta:', e);
+        }
+      }
+    } else if (message.type === 'audio') {
+      incomingText = '🎵 Voice Note / Audio';
+      const metaMediaId = message.audio?.id;
+      if (metaMediaId) {
+        try {
+          const downloaded = await downloadMediaFromMeta(metaMediaId);
+          if (downloaded) {
+            const ext = downloaded.mimeType.includes('ogg') ? '.ogg' : '.mp3';
+            const filename = `inbound_${Date.now()}_${metaMediaId}${ext}`;
+            const uploadsDir = path.resolve(process.cwd(), 'data', 'uploads');
+            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+            fs.writeFileSync(path.join(uploadsDir, filename), downloaded.buffer);
+            mediaUrl = `/uploads/${filename}`;
+          }
+        } catch (e) {
+          console.warn('[Webhook] Failed to download inbound audio from Meta:', e);
+        }
+      }
     }
 
     const customerName = changes.contacts?.[0]?.profile?.name || 'Customer';
@@ -104,6 +197,9 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     console.log(`🆔 Message ID: ${messageId}`);
     console.log(`📦 Type:       ${message.type}${selectedOption ? ` (${message.interactive?.type})` : ''}`);
     console.log(`💬 Message:    "${incomingText || selectedTitle}"`);
+    if (mediaUrl) {
+      console.log(`🖼️ Media URL:  ${mediaUrl}`);
+    }
     if (selectedOption) {
       console.log(`🎯 Option ID:  ${selectedOption}`);
       console.log(`🏷️ Option Title:${selectedTitle}`);
@@ -128,14 +224,20 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         // Ensure contact exists in DB first to satisfy foreign key constraint
         statements.upsertContact.run(session);
 
+        const msgType = message.type === 'image' ? 'image' : message.type === 'video' ? 'video' : message.type === 'document' ? 'document' : message.type === 'audio' ? 'audio' : (selectedOption ? 'interactive' : 'text');
+
+        const finalContent = msgType === 'document' ? (docFilename || 'Document.pdf') : (incomingText || selectedTitle);
+
         // Save incoming customer message in SQLite
         statements.insertMessage.run({
           whatsapp_message_id: messageId,
           phone,
           direction: 'inbound',
           sender_type: 'customer',
-          message_type: selectedOption ? 'interactive' : 'text',
-          content: incomingText || selectedTitle,
+          message_type: msgType,
+          content: finalContent,
+          media_url: mediaUrl,
+          caption: caption,
           selected_option: selectedOption || null,
           selected_title: selectedTitle || null,
           status: 'delivered'
@@ -147,8 +249,10 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           phone,
           direction: 'inbound',
           sender_type: 'customer',
-          message_type: selectedOption ? 'interactive' : 'text',
-          content: incomingText || selectedTitle,
+          message_type: msgType,
+          content: finalContent,
+          media_url: mediaUrl,
+          caption: caption,
           selected_option: selectedOption || null,
           selected_title: selectedTitle || null,
           status: 'delivered',
@@ -206,6 +310,8 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           sender_type: 'bot',
           message_type: routeResult.replyType,
           content: routeResult.replyText,
+          media_url: '',
+          caption: '',
           selected_option: null,
           selected_title: null,
           status: sendRes.success ? 'sent' : 'failed'
@@ -219,6 +325,8 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           sender_type: 'bot',
           message_type: routeResult.replyType,
           content: routeResult.replyText,
+          media_url: '',
+          caption: '',
           selected_option: null,
           selected_title: null,
           status: sendRes.success ? 'sent' : 'failed',

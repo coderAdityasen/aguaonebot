@@ -37,27 +37,7 @@ export function routeConversation(
   const updated: ContactSession = { ...session };
   updated.last_message = rawText || selTitle;
 
-  // 1. Terminal Check: If already qualified, in handoff, or bot paused -> Keep silent
-  if (
-    updated.state === 'handoff' || 
-    updated.lead_status === 'HANDOFF' || 
-    updated.qualified === 1 || 
-    updated.bot_active === 0
-  ) {
-    updated.state = 'handoff';
-    updated.qualified = 1;
-    updated.lead_status = 'HANDOFF';
-    return {
-      shouldReply: false,
-      replyType: 'none',
-      replyText: '',
-      options: [],
-      action: 'HUMAN_HANDOFF_NO_REPLY',
-      updatedSession: updated
-    };
-  }
-
-  // 2. Restart Command Handling
+  // 1. Restart Command Handling (Checked FIRST so customer can restart at any point)
   if (RESTART_WORDS.has(lower) || lower === 'restart' || lower.startsWith('restart ')) {
     updated.city = '';
     updated.category = '';
@@ -72,8 +52,9 @@ export function routeConversation(
     updated.gst_status = '';
     updated.qualified = 0;
     updated.lead_status = 'IN_PROGRESS';
+    updated.bot_active = 1;
 
-    if (lower.includes('flovax')) {
+    if (lower.includes('flovax') || lower.includes('nepal') || lower.includes('नेपाल')) {
       updated.brand = 'flovax';
       updated.state = 'city';
       const q = FLOVAX_QUESTIONS.city;
@@ -85,7 +66,7 @@ export function routeConversation(
         action: 'RESTART_FLOVAX',
         updatedSession: updated
       };
-    } else if (lower.includes('aguaone')) {
+    } else if (lower.includes('aguaone') || lower.includes('india') || lower.includes('भारत')) {
       updated.brand = 'aguaone';
       updated.state = 'city';
       const q = AGUAONE_QUESTIONS.city;
@@ -133,13 +114,43 @@ export function routeConversation(
     }
   }
 
-  // 3. Brand Detection Logic
-  // Check if message mentions brand or if user clicked brand chooser
-  const mentionsFlovax = lower.includes('flovax') || selOpt === 'brand_flovax';
-  const mentionsAguaone = lower.includes('aguaone') || selOpt === 'brand_aguaone';
+  // 2. Terminal Check: If already qualified, in handoff, or bot paused -> Keep silent
+  if (
+    updated.state === 'handoff' || 
+    updated.lead_status === 'HANDOFF' || 
+    updated.qualified === 1 || 
+    updated.bot_active === 0
+  ) {
+    updated.state = 'handoff';
+    updated.qualified = 1;
+    updated.lead_status = 'HANDOFF';
+    return {
+      shouldReply: false,
+      replyType: 'none',
+      replyText: '',
+      options: [],
+      action: 'HUMAN_HANDOFF_NO_REPLY',
+      updatedSession: updated
+    };
+  }
+
+  // 3. Brand Detection Logic & Synonyms (Supports 1/2, Nepal/India, Flovax/Aguaone)
+  const isFlovaxIntent = 
+    lower.includes('flovax') || 
+    lower.includes('nepal') || 
+    lower.includes('नेपाल') || 
+    selOpt === 'brand_flovax' || 
+    (updated.state === 'brand_select' && (lower === '1' || selTitle.includes('FLOVAX')));
+
+  const isAguaoneIntent = 
+    lower.includes('aguaone') || 
+    lower.includes('india') || 
+    lower.includes('भारत') || 
+    selOpt === 'brand_aguaone' || 
+    (updated.state === 'brand_select' && (lower === '2' || selTitle.includes('AGUAONE')));
 
   if (!updated.brand) {
-    if (mentionsFlovax && !mentionsAguaone) {
+    if (isFlovaxIntent && !isAguaoneIntent) {
       updated.brand = 'flovax';
       updated.state = 'city';
       const q = FLOVAX_QUESTIONS.city;
@@ -151,7 +162,7 @@ export function routeConversation(
         action: 'START_FLOVAX',
         updatedSession: updated
       };
-    } else if (mentionsAguaone && !mentionsFlovax) {
+    } else if (isAguaoneIntent && !isFlovaxIntent) {
       updated.brand = 'aguaone';
       updated.state = 'city';
       const q = AGUAONE_QUESTIONS.city;
@@ -164,7 +175,7 @@ export function routeConversation(
         updatedSession: updated
       };
     } else {
-      // Neither brand mentioned, or both mentioned: present brand selection
+      // Prompt user to select brand
       updated.state = 'brand_select';
       return {
         shouldReply: true,
@@ -179,7 +190,7 @@ export function routeConversation(
 
   // 4. Handle Brand Selection State
   if (updated.state === 'brand_select') {
-    if (mentionsFlovax) {
+    if (isFlovaxIntent) {
       updated.brand = 'flovax';
       updated.state = 'city';
       const q = FLOVAX_QUESTIONS.city;
@@ -191,7 +202,7 @@ export function routeConversation(
         action: 'START_FLOVAX',
         updatedSession: updated
       };
-    } else if (mentionsAguaone) {
+    } else if (isAguaoneIntent) {
       updated.brand = 'aguaone';
       updated.state = 'city';
       const q = AGUAONE_QUESTIONS.city;
@@ -304,17 +315,58 @@ export function routeConversation(
     matched = q.options.find(o => o.id === selOpt) || null;
   }
 
-  // Fallback: Match by title, description, or fuzzy match
+  // Fallback: Match by numeric index (1, 2, 3), exact title, description, or length-guarded substring
   if (!matched) {
     const candidate = (selTitle || rawText).toLowerCase().trim();
     if (candidate) {
-      matched = q.options.find(o => o.title.toLowerCase() === candidate)
-        || q.options.find(o => o.description && o.description.toLowerCase() === candidate)
-        || q.options.find(o =>
-            candidate.includes(o.title.toLowerCase()) ||
-            o.title.toLowerCase().includes(candidate)
-          )
-        || null;
+      // 1. Numeric index match (e.g. user sends "1", "2", "3")
+      const numMatch = candidate.match(/^(\d+)$/);
+      if (numMatch) {
+        const idx = parseInt(numMatch[1], 10) - 1;
+        if (idx >= 0 && idx < q.options.length) {
+          matched = q.options[idx];
+        }
+      }
+
+      // 2. Exact match on title or description
+      if (!matched) {
+        matched = q.options.find(o => o.title.toLowerCase() === candidate)
+          || q.options.find(o => o.description && o.description.toLowerCase() === candidate)
+          || null;
+      }
+
+      // 3. Substring match ONLY if input has at least 3 characters (avoids single-letter false matches)
+      if (!matched && candidate.length >= 3) {
+        matched = q.options.find(o => candidate.includes(o.title.toLowerCase()))
+          || q.options.find(o => o.title.toLowerCase().includes(candidate))
+          || q.options.find(o => o.description && (candidate.includes(o.description.toLowerCase()) || o.description.toLowerCase().includes(candidate)))
+          || null;
+      }
+
+      // 4. Import license short answer keywords (Yes/No, छ/छैन, ho/hoina)
+      if (!matched && currentState === 'import_license') {
+        const c = candidate.trim();
+        if (['छ', 'हो', 'yes', 'ha', 'haa', 'cha', 'available', 'y'].includes(c)) {
+          matched = q.options.find(o => o.id === 'license_yes') || q.options[0];
+        } else if (['छैन', 'होइन', 'no', 'na', 'chaina', 'not', 'n'].includes(c)) {
+          matched = q.options.find(o => o.id === 'license_no') || q.options[1];
+        }
+      }
+    }
+  }
+
+  // ----------------------------------------------------------------------
+  // SPECIAL CASE: City Question (Flovax & Aguaone)
+  // Accept user's typed city name directly if they didn't select from list
+  // ----------------------------------------------------------------------
+  if (!matched && currentState === 'city') {
+    const rawCity = (rawText || selTitle).trim();
+    // Accept any realistic city name (at least 2 letters, not pure numbers, not restart command)
+    if (rawCity.length >= 2 && !/^\d+$/.test(rawCity) && !RESTART_WORDS.has(rawCity.toLowerCase())) {
+      matched = {
+        id: 'custom_city',
+        title: rawCity
+      };
     }
   }
 
@@ -332,6 +384,9 @@ export function routeConversation(
 
   // Save selected option title
   (updated as any)[currentState] = matched.title;
+  if (currentState === 'city') {
+    updated.city = matched.title;
+  }
 
   // Check if terminal question reached
   if (currentState === terminalQuestion) {
@@ -351,7 +406,23 @@ export function routeConversation(
   }
 
   // Advance to next question
-  const nextKey = q.next;
+  let nextKey = q.next;
+
+  // Flovax Import License Branching:
+  // Show 'import_experience' ONLY when user selects 'Yes' (license_yes).
+  // Otherwise, skip 'import_experience' and proceed directly to 'pan_registration'.
+  if (currentState === 'import_license') {
+    const isLicenseYes = matched.id === 'license_yes';
+
+    if (isLicenseYes) {
+      nextKey = 'import_experience';
+    } else {
+      // User does not have an import license: skip experience and jump to pan registration
+      nextKey = 'pan_registration';
+      updated.import_experience = 'N/A — No Import License';
+    }
+  }
+
   updated.state = nextKey;
   const nextQ = questions[nextKey];
 

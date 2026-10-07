@@ -35,6 +35,11 @@ try {
   if (!colSet.has('import_experience')) db.exec("ALTER TABLE contacts ADD COLUMN import_experience TEXT DEFAULT ''");
   if (!colSet.has('pan_registration')) db.exec("ALTER TABLE contacts ADD COLUMN pan_registration TEXT DEFAULT ''");
   if (!colSet.has('gst_status')) db.exec("ALTER TABLE contacts ADD COLUMN gst_status TEXT DEFAULT ''");
+
+  const existingMsgCols = db.pragma('table_info(messages)') as any[];
+  const msgColSet = new Set(existingMsgCols.map((c) => c.name));
+  if (!msgColSet.has('media_url')) db.exec("ALTER TABLE messages ADD COLUMN media_url TEXT DEFAULT ''");
+  if (!msgColSet.has('caption')) db.exec("ALTER TABLE messages ADD COLUMN caption TEXT DEFAULT ''");
 } catch (e) {
   console.warn('[DB Migration Warning]:', e);
 }
@@ -108,6 +113,12 @@ export const statements = {
     WHERE phone = ?
   `),
 
+  updateContactName: db.prepare(`
+    UPDATE contacts 
+    SET name = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE phone = ?
+  `),
+
   resetUnreadCount: db.prepare(`
     UPDATE contacts 
     SET unread_count = 0 
@@ -117,10 +128,10 @@ export const statements = {
   insertMessage: db.prepare(`
     INSERT INTO messages (
       whatsapp_message_id, phone, direction, sender_type, 
-      message_type, content, selected_option, selected_title, status
+      message_type, content, media_url, caption, selected_option, selected_title, status
     ) VALUES (
       @whatsapp_message_id, @phone, @direction, @sender_type,
-      @message_type, @content, @selected_option, @selected_title, @status
+      @message_type, @content, COALESCE(@media_url, ''), COALESCE(@caption, ''), @selected_option, @selected_title, @status
     )
   `),
 
@@ -147,14 +158,14 @@ export const statements = {
   `),
 
   getQualifiedLeadsForExport: db.prepare(`
-    SELECT phone, name, brand, city, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
+    SELECT phone, name, brand, city, category, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
     FROM contacts
     WHERE qualified = 1 OR lead_status = 'HANDOFF'
     ORDER BY updated_at DESC
   `),
 
   getAllLeadsForExport: db.prepare(`
-    SELECT phone, name, brand, city, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
+    SELECT phone, name, brand, city, category, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
     FROM contacts
     ORDER BY updated_at DESC
   `),
