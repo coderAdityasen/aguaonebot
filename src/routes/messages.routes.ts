@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
+import '@fastify/multipart';
 import fs from 'fs';
 import path from 'path';
 import { statements } from '../database/db';
@@ -93,7 +94,7 @@ export const messageRoutes: FastifyPluginAsync = async (fastify) => {
     let mediaType: 'image' | 'video' | 'document' | 'audio' = 'image';
 
     try {
-      const parts = req.parts({ limits: { fileSize: 50 * 1024 * 1024 } });
+      const parts = (req as any).parts({ limits: { fileSize: 50 * 1024 * 1024 } });
       for await (const part of parts) {
         if (part.type === 'file') {
           fileBuffer = await part.toBuffer();
