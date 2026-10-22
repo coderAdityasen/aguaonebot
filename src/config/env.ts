@@ -14,13 +14,13 @@ export const config = {
   whatsappWabaId: process.env.WHATSAPP_WABA_ID || '',
   metaAppId: process.env.META_APP_ID || '',
   metaAppSecret: process.env.META_APP_SECRET || '',
-  whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN || 'aguaone_lead_bot_verify_token_2026',
+  whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN || 'claren_lead_bot_verify_token_2026',
   publicDomain: process.env.PUBLIC_DOMAIN || 'http://localhost:3000',
 
   // Admin Authentication
   adminUsername: process.env.ADMIN_USERNAME || 'admin',
-  adminPassword: process.env.ADMIN_PASSWORD || 'aguaone@2026',
-  jwtSecret: process.env.JWT_SECRET || 'aguaone_super_secret_auth_token_key_2026',
+  adminPassword: process.env.ADMIN_PASSWORD || 'claren@2026',
+  jwtSecret: process.env.JWT_SECRET || 'claren_super_secret_auth_token_key_2026',
 
   isConfigured: () => {
     return Boolean(

@@ -105,7 +105,7 @@ async function bootstrap() {
   } else {
     fastify.get('/', async () => {
       return {
-        message: 'AGUAONE WhatsApp Automation API is running.',
+        message: 'CLAREN WhatsApp Automation API is running.',
         ui: 'Frontend not yet built. Run `npm run build:frontend` to bundle the WhatsApp Web UI.',
         webhook: `${config.publicDomain}/webhook`,
         health: `${config.publicDomain}/api/health`
@@ -118,7 +118,7 @@ async function bootstrap() {
     await fastify.listen({ port: config.port, host: config.host });
     console.log(`
 ===========================================================
-🚀 AGUAONE WhatsApp Bot & Live Agent CRM Started!
+🚀 CLAREN WhatsApp Bot & Live Agent CRM Started!
 ===========================================================
 📡 Port:           ${config.port}
 🌐 Public Domain:  ${config.publicDomain}

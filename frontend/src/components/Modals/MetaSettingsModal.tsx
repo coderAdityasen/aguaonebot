@@ -92,7 +92,7 @@ export const MetaSettingsModal: React.FC<MetaSettingsModalProps> = ({
   if (!isOpen) return null;
 
   const webhookUrl = `${window.location.origin}/webhook`;
-  const verifyToken = status?.verifyToken || 'aguaone_lead_bot_verify_token_2026';
+  const verifyToken = status?.verifyToken || 'claren_lead_bot_verify_token_2026';
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -268,11 +268,11 @@ export const MetaSettingsModal: React.FC<MetaSettingsModalProps> = ({
               </button>
 
               <button
-                onClick={() => { setSimText('aguaone'); }}
+                onClick={() => { setSimText('claren'); }}
                 className="px-2 py-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 rounded text-xs font-semibold"
-                title="Simulate AGUAONE India Flow"
+                title="Simulate CLAREN India Flow"
               >
-                "aguaone"
+                "claren"
               </button>
 
               <button

@@ -40,6 +40,9 @@ try {
   const msgColSet = new Set(existingMsgCols.map((c) => c.name));
   if (!msgColSet.has('media_url')) db.exec("ALTER TABLE messages ADD COLUMN media_url TEXT DEFAULT ''");
   if (!msgColSet.has('caption')) db.exec("ALTER TABLE messages ADD COLUMN caption TEXT DEFAULT ''");
+
+  // Auto-migrate legacy brand names from previous version
+  db.exec("UPDATE contacts SET brand = 'claren' WHERE LOWER(brand) = 'aguaone'");
 } catch (e) {
   console.warn('[DB Migration Warning]:', e);
 }
@@ -60,7 +63,8 @@ export const statements = {
       (@filter = 'handoff' AND (lead_status = 'HANDOFF' OR qualified = 1 OR bot_active = 0)) OR
       (@filter = 'bot_active' AND bot_active = 1 AND lead_status = 'IN_PROGRESS') OR
       (@filter = 'qualified' AND qualified = 1) OR
-      (@filter = 'aguaone' AND LOWER(brand) = 'aguaone') OR
+      (@filter = 'claren' AND LOWER(brand) IN ('claren', 'aguaone')) OR
+      (@filter = 'aguaone' AND LOWER(brand) IN ('claren', 'aguaone')) OR
       (@filter = 'flovax' AND LOWER(brand) = 'flovax')
     ORDER BY last_message_at DESC
   `),

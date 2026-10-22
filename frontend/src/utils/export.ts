@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export interface ExportOptions {
   type?: 'qualified' | 'all';
-  brand?: 'all' | 'aguaone' | 'flovax' | string;
+  brand?: 'all' | 'claren' | 'flovax' | string;
 }
 
 /**

@@ -15,7 +15,7 @@ export function getAutoVerifyToken(): string {
   if (config.metaAppSecret && config.metaAppSecret !== 'YOUR_META_APP_SECRET') {
     return crypto.createHash('sha256').update(config.metaAppSecret).digest('hex').slice(0, 32);
   }
-  return config.whatsappVerifyToken || 'aguaone_auto_verify_token';
+  return config.whatsappVerifyToken || 'claren_auto_verify_token';
 }
 
 export async function autoRegisterWebhookWithMeta(options: AutoSubscribeOptions = {}) {

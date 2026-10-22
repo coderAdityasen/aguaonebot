@@ -1,4 +1,4 @@
-# AGUAONE WhatsApp Automation & Live Agent Dashboard
+# CLAREN WhatsApp Automation & Live Agent Dashboard
 ## Ultra-Low Latency Architecture & Implementation Blueprint
 ### *Optimized for Sub-80ms WhatsApp Roundtrips & Minimal VPS Overhead*
 
@@ -126,7 +126,7 @@ sequenceDiagram
 ## 5. Directory & File Structure
 
 ```text
-aguone-whatsapp-bot/
+claren-whatsapp-bot/
 ├── .env.example                     # Environment template
 ├── package.json                     # Root dependencies (Fastify, better-sqlite3, etc.)
 ├── tsconfig.json                    # Strict TypeScript compiler options
@@ -145,7 +145,7 @@ aguone-whatsapp-bot/
 │   │   ├── session-cache.ts         # High-speed LRU session store
 │   │   └── dedup-cache.ts           # Sub-microsecond message ID ring buffer
 │   ├── bot/
-│   │   ├── questions.ts             # 6-step AGUAONE questions & Hindi options
+│   │   ├── questions.ts             # 6-step CLAREN questions & Hindi options
 │   │   ├── router.ts                # Deterministic state machine
 │   │   └── matcher.ts               # Sub-millisecond option matcher
 │   ├── whatsapp/
@@ -393,7 +393,7 @@ export function updateSession(session: ContactSession) {
 
 ---
 
-## 9. AGUAONE Bot Questions & Router
+## 9. CLAREN Bot Questions & Router
 
 `src/bot/questions.ts`:
 ```typescript
@@ -449,7 +449,7 @@ export const QUESTIONS = {
     ]
   },
   opportunity: {
-    text: 'आप AGUAONE में किस तरह की business opportunity देख रहे हैं?',
+    text: 'आप CLAREN में किस तरह की business opportunity देख रहे हैं?',
     next: 'budget',
     options: [
       { id: 'retail_dealership', title: 'Retail Dealership' },
@@ -724,13 +724,13 @@ The interface runs in the browser, connected via pure WebSockets to port 3000.
 
 ```
 +----------------------------------------------------------------------------------------------------+
-|  [Logo] AGUAONE WhatsApp Inbox                                        [🟢 WS: 0.8ms]  [Agent: Amit] |
+|  [Logo] CLAREN WhatsApp Inbox                                         [🟢 WS: 0.8ms]  [Agent: Amit] |
 +------------------------+------------------------------------------+--------------------------------+
 |  🔍 Filter by phone... |  CHAT: Ramesh Kumar (+91 98765 43210)    |  LEAD QUALIFICATION CARD       |
 |  [All] [Handoff] [Bot] |  Status: 🟢 Human Agent Active            |                                |
 +------------------------+------------------------------------------+--------------------------------+
 | Ramesh Kumar           |  [Customer - 10:14 AM]                   |  Lead Status:                  |
-| +91 9876543210         |  मुझे AGUAONE डीलरशिप चाहिए              |  [ QUALIFIED              v ]  |
+| +91 9876543210         |  मुझे CLAREN डीलरशिप चाहिए               |  [ QUALIFIED              v ]  |
 | 🏷️ HANDOFF (Qualified) |                                          |                                |
 | "Budget: ₹2L–₹5L"      |  [🤖 Bot - 10:14 AM]                     |  Bot Automation Mode:          |
 |                        |  बहुत बढ़िया! आप किस शहर से हैं?        |  [ 🔴 PAUSED (Click to Resume)]|
@@ -739,7 +739,7 @@ The interface runs in the browser, connected via pure WebSockets to port 3000.
 | 🤖 Bot Active          |  Lucknow                                 |  • City: Lucknow               |
 | "Shop: Own Shop"       |                                          |  • Category: Sanitaryware      |
 |                        |  [🙋 You (Agent) - 10:18 AM]             |  • Shop: Own Shop              |
-| Sunil Verma            |  नमस्ते रमेश जी! मैं AGUAONE से बात कर   |  • Experience: 3–5 Years       |
+| Sunil Verma            |  नमस्ते रमेश जी! मैं CLAREN से बात कर    |  • Experience: 3–5 Years       |
 | +91 9811223344         |  रहा हूँ। क्या हम 2 बजे बात कर सकते हैं? |  • Opportunity: Dealership     |
 | 🏷️ In Progress         +------------------------------------------+  • Budget: ₹2L–₹5L             |
 | "Waiting for Q4"       |  [ Type your WhatsApp reply... ] [Send]  +--------------------------------+
@@ -790,7 +790,7 @@ export async function autoRegisterWebhookWithMeta(domain: string, verifyToken: s
 module.exports = {
   apps: [
     {
-      name: 'aguaone-bot',
+      name: 'claren-bot',
       script: './dist/server.js',
       instances: 1,
       exec_mode: 'fork',

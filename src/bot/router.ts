@@ -5,10 +5,10 @@ import {
   FLOVAX_ORDER,
   FLOVAX_THANK_YOU,
   FLOVAX_RETRY_PREFIX,
-  AGUAONE_QUESTIONS,
-  AGUAONE_ORDER,
-  AGUAONE_THANK_YOU,
-  AGUAONE_RETRY_PREFIX,
+  CLAREN_QUESTIONS,
+  CLAREN_ORDER,
+  CLAREN_THANK_YOU,
+  CLAREN_RETRY_PREFIX,
   RESTART_WORDS,
   QuestionOption 
 } from './questions';
@@ -66,16 +66,16 @@ export function routeConversation(
         action: 'RESTART_FLOVAX',
         updatedSession: updated
       };
-    } else if (lower.includes('aguaone') || lower.includes('india') || lower.includes('भारत')) {
-      updated.brand = 'aguaone';
+    } else if (lower.includes('claren') || lower.includes('india') || lower.includes('भारत')) {
+      updated.brand = 'claren';
       updated.state = 'city';
-      const q = AGUAONE_QUESTIONS.city;
+      const q = CLAREN_QUESTIONS.city;
       return {
         shouldReply: true,
         replyType: 'list',
         replyText: q.text,
         options: [...q.options],
-        action: 'RESTART_AGUAONE',
+        action: 'RESTART_CLAREN',
         updatedSession: updated
       };
     } else if (updated.brand === 'flovax') {
@@ -89,15 +89,16 @@ export function routeConversation(
         action: 'RESTART_FLOVAX',
         updatedSession: updated
       };
-    } else if (updated.brand === 'aguaone') {
+    } else if (updated.brand === 'claren' || updated.brand === 'aguaone') {
+      updated.brand = 'claren';
       updated.state = 'city';
-      const q = AGUAONE_QUESTIONS.city;
+      const q = CLAREN_QUESTIONS.city;
       return {
         shouldReply: true,
         replyType: 'list',
         replyText: q.text,
         options: [...q.options],
-        action: 'RESTART_AGUAONE',
+        action: 'RESTART_CLAREN',
         updatedSession: updated
       };
     } else {
@@ -134,7 +135,7 @@ export function routeConversation(
     };
   }
 
-  // 3. Brand Detection Logic & Synonyms (Supports 1/2, Nepal/India, Flovax/Aguaone)
+  // 3. Brand Detection Logic & Synonyms (Supports 1/2, Nepal/India, Flovax/Claren)
   const isFlovaxIntent = 
     lower.includes('flovax') || 
     lower.includes('nepal') || 
@@ -142,15 +143,17 @@ export function routeConversation(
     selOpt === 'brand_flovax' || 
     (updated.state === 'brand_select' && (lower === '1' || selTitle.includes('FLOVAX')));
 
-  const isAguaoneIntent = 
+  const isClarenIntent = 
+    lower.includes('claren') || 
     lower.includes('aguaone') || 
     lower.includes('india') || 
     lower.includes('भारत') || 
+    selOpt === 'brand_claren' || 
     selOpt === 'brand_aguaone' || 
-    (updated.state === 'brand_select' && (lower === '2' || selTitle.includes('AGUAONE')));
+    (updated.state === 'brand_select' && (lower === '2' || selTitle.toUpperCase().includes('CLAREN') || selTitle.toUpperCase().includes('AGUAONE')));
 
   if (!updated.brand) {
-    if (isFlovaxIntent && !isAguaoneIntent) {
+    if (isFlovaxIntent && !isClarenIntent) {
       updated.brand = 'flovax';
       updated.state = 'city';
       const q = FLOVAX_QUESTIONS.city;
@@ -162,16 +165,16 @@ export function routeConversation(
         action: 'START_FLOVAX',
         updatedSession: updated
       };
-    } else if (isAguaoneIntent && !isFlovaxIntent) {
-      updated.brand = 'aguaone';
+    } else if (isClarenIntent && !isFlovaxIntent) {
+      updated.brand = 'claren';
       updated.state = 'city';
-      const q = AGUAONE_QUESTIONS.city;
+      const q = CLAREN_QUESTIONS.city;
       return {
         shouldReply: true,
         replyType: 'list',
         replyText: q.text,
         options: [...q.options],
-        action: 'START_AGUAONE',
+        action: 'START_CLAREN',
         updatedSession: updated
       };
     } else {
@@ -202,16 +205,16 @@ export function routeConversation(
         action: 'START_FLOVAX',
         updatedSession: updated
       };
-    } else if (isAguaoneIntent) {
-      updated.brand = 'aguaone';
+    } else if (isClarenIntent) {
+      updated.brand = 'claren';
       updated.state = 'city';
-      const q = AGUAONE_QUESTIONS.city;
+      const q = CLAREN_QUESTIONS.city;
       return {
         shouldReply: true,
         replyType: 'list',
         replyText: q.text,
         options: [...q.options],
-        action: 'START_AGUAONE',
+        action: 'START_CLAREN',
         updatedSession: updated
       };
     } else {
@@ -227,11 +230,14 @@ export function routeConversation(
   }
 
   // 5. Active Survey Routing by Brand
+  if (updated.brand === 'aguaone') {
+    updated.brand = 'claren';
+  }
   const isFlovax = updated.brand === 'flovax';
-  const questions = isFlovax ? FLOVAX_QUESTIONS : AGUAONE_QUESTIONS;
-  const order = isFlovax ? FLOVAX_ORDER : AGUAONE_ORDER;
-  const thankYouText = isFlovax ? FLOVAX_THANK_YOU : AGUAONE_THANK_YOU;
-  const retryPrefix = isFlovax ? FLOVAX_RETRY_PREFIX : AGUAONE_RETRY_PREFIX;
+  const questions = isFlovax ? FLOVAX_QUESTIONS : CLAREN_QUESTIONS;
+  const order = isFlovax ? FLOVAX_ORDER : CLAREN_ORDER;
+  const thankYouText = isFlovax ? FLOVAX_THANK_YOU : CLAREN_THANK_YOU;
+  const retryPrefix = isFlovax ? FLOVAX_RETRY_PREFIX : CLAREN_RETRY_PREFIX;
   const terminalQuestion = isFlovax ? 'pan_registration' : 'gst_status';
 
   let currentState = updated.state || 'new';
@@ -356,7 +362,7 @@ export function routeConversation(
   }
 
   // ----------------------------------------------------------------------
-  // SPECIAL CASE: City Question (Flovax & Aguaone)
+  // SPECIAL CASE: City Question (Flovax & Claren)
   // Accept user's typed city name directly if they didn't select from list
   // ----------------------------------------------------------------------
   if (!matched && currentState === 'city') {

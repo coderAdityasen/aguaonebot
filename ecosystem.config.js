@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'aguaone-whatsapp-bot',
+      name: 'claren-whatsapp-bot',
       script: './dist/server.js',
       instances: 1,
       exec_mode: 'fork',

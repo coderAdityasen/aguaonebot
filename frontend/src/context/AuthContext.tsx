@@ -25,7 +25,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('aguaone_token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem('claren_token'));
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('aguaone_token');
+      const storedToken = localStorage.getItem('claren_token');
       if (storedToken) {
         configureAxios(storedToken);
         try {
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const authToken = res.data.token;
         const authUser = res.data.user;
 
-        localStorage.setItem('aguaone_token', authToken);
+        localStorage.setItem('claren_token', authToken);
         configureAxios(authToken);
         setToken(authToken);
         setUser(authUser);
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('aguaone_token');
+    localStorage.removeItem('claren_token');
     configureAxios(null);
     setToken(null);
     setUser(null);

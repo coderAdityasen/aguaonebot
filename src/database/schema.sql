@@ -1,4 +1,4 @@
--- Schema for AGUAONE WhatsApp Bot & Live Agent CRM
+-- Schema for CLAREN WhatsApp Bot & Live Agent CRM
 
 CREATE TABLE IF NOT EXISTS contacts (
     phone TEXT PRIMARY KEY,

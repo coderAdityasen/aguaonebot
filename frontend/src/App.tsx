@@ -134,7 +134,7 @@ export const App: React.FC = () => {
       if (!exists) {
         const matchesFilter =
           activeFilter === 'all' ||
-          (activeFilter === 'aguaone' && latestContactUpdate.brand?.toLowerCase() === 'aguaone') ||
+          (activeFilter === 'claren' && latestContactUpdate.brand?.toLowerCase() === 'claren') ||
           (activeFilter === 'flovax' && latestContactUpdate.brand?.toLowerCase() === 'flovax') ||
           (activeFilter === 'qualified' && latestContactUpdate.qualified === 1) ||
           (activeFilter === 'handoff' && (latestContactUpdate.lead_status === 'HANDOFF' || latestContactUpdate.bot_active === 0)) ||

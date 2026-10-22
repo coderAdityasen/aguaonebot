@@ -39,7 +39,7 @@ export const ContactList: React.FC<ContactListProps> = ({
     setIsExporting(true);
     setShowExportMenu(false);
     try {
-      const brand = activeFilter === 'aguaone' ? 'aguaone' : activeFilter === 'flovax' ? 'flovax' : 'all';
+      const brand = activeFilter === 'claren' ? 'claren' : activeFilter === 'flovax' ? 'flovax' : 'all';
       await downloadLeadsCSV({ type, brand });
     } finally {
       setIsExporting(false);
@@ -66,10 +66,10 @@ export const ContactList: React.FC<ContactListProps> = ({
       <div className="min-h-[64px] bg-[#f0f2f5] px-3 sm:px-4 flex items-center justify-between border-b border-gray-200 shrink-0 pt-[env(safe-area-inset-top,0px)] py-2 shadow-xs">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-wa-teal text-white flex items-center justify-center font-bold text-lg shadow-sm">
-            A
+            C
           </div>
           <div>
-            <h1 className="font-semibold text-gray-800 text-sm leading-tight">AGUAONE Lead CRM</h1>
+            <h1 className="font-semibold text-gray-800 text-sm leading-tight">CLAREN Lead CRM</h1>
             <p className="text-xs text-gray-500">Live Agent Inbox</p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                 />
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                    Export to CSV {activeFilter === 'aguaone' ? '(AGUAONE)' : activeFilter === 'flovax' ? '(FLOVAX)' : ''}
+                    Export to CSV {activeFilter === 'claren' ? '(CLAREN)' : activeFilter === 'flovax' ? '(FLOVAX)' : ''}
                   </div>
                   <button
                     onClick={() => handleExport('qualified')}
@@ -209,14 +209,14 @@ export const ContactList: React.FC<ContactListProps> = ({
         </button>
 
         <button
-          onClick={() => onFilterChange('aguaone')}
+          onClick={() => onFilterChange('claren')}
           className={`px-3 py-1 rounded-full whitespace-nowrap flex items-center space-x-1 transition-colors ${
-            activeFilter === 'aguaone'
+            activeFilter === 'claren'
               ? 'bg-emerald-600 text-white font-medium shadow-sm'
               : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
           }`}
         >
-          <span>🇮🇳 AGUAONE</span>
+          <span>🇮🇳 CLAREN</span>
         </button>
 
         <button
@@ -298,7 +298,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 AGUAONE'}
+                        {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 CLAREN'}
                       </span>
                     )}
 

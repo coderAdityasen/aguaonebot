@@ -1,7 +1,7 @@
 export interface Contact {
   phone: string;
   name: string;
-  brand?: 'aguaone' | 'flovax' | string;
+  brand?: 'claren' | 'flovax' | string;
   state: string;
   lead_status: 'IN_PROGRESS' | 'HANDOFF' | 'QUALIFIED' | 'CLOSED';
   bot_active: number; // 1 = Bot active, 0 = Human in control

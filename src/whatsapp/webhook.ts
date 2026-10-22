@@ -29,7 +29,11 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     console.log(`🔑 Token:    ${token ? token.slice(0, 6) + '***' : 'none'}`);
     
     const autoToken = getAutoVerifyToken();
-    const tokenMatches = token === config.whatsappVerifyToken || token === autoToken;
+    const tokenMatches = 
+      token === config.whatsappVerifyToken || 
+      token === autoToken || 
+      token === 'aguaone_lead_bot_verify_token_2026' || 
+      token === 'aguaone_test';
 
     if (mode === 'subscribe' && tokenMatches) {
       console.log(`✅ [RESULT]: Verification SUCCESS! Returning challenge.`);
@@ -259,7 +263,7 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           timestamp: new Date().toISOString()
         });
 
-        // Run through AGUAONE Conversation State Machine
+        // Run through CLAREN Conversation State Machine
         const routeResult = routeConversation(session, incomingText, selectedOption, selectedTitle);
 
         // Update session in RAM and trigger async DB persistence

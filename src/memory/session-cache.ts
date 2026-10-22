@@ -4,7 +4,7 @@ import { statements } from '../database/db';
 export interface ContactSession {
   phone: string;
   name: string;
-  brand: string; // 'aguaone' | 'flovax' | ''
+  brand: string; // 'claren' | 'flovax' | ''
   state: string;
   lead_status: string;
   bot_active: number;

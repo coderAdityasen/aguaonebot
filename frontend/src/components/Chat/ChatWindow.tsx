@@ -143,7 +143,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center text-wa-teal mb-4 shadow-inner">
           <Phone className="w-10 h-10" />
         </div>
-        <h2 className="text-xl font-medium text-gray-800 mb-1">AGUAONE WhatsApp Dashboard</h2>
+        <h2 className="text-xl font-medium text-gray-800 mb-1">CLAREN WhatsApp Dashboard</h2>
         <p className="text-sm text-gray-500 max-w-md">
           Select a customer from the left sidebar to inspect lead responses, monitor bot questionnaire progress, or take over chat directly on WhatsApp.
         </p>
@@ -238,7 +238,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       ? 'bg-red-100 text-red-700'
                       : 'bg-emerald-100 text-emerald-800'
                   }`}>
-                    {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 AGUAONE'}
+                    {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 CLAREN'}
                   </span>
                 )}
               </div>

@@ -1,4 +1,4 @@
-# Caddyfile for AGUAONE WhatsApp Bot
+# Caddyfile for CLAREN WhatsApp Bot
 # Replace 'bot.yourdomain.com' with your actual domain or VPS subdomain.
 # Caddy will automatically request and renew a free Let's Encrypt SSL certificate!
 

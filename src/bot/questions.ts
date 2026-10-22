@@ -16,11 +16,11 @@ export interface QuestionStep {
 // -------------------------------------------------------------
 export const BRAND_CHOOSER: QuestionStep = {
   type: 'list',
-  text: 'नमस्ते! AGUAONE & FLOVAX मा स्वागत छ। 🙏\nकृपया आफूले चाहेको ब्रान्ड छनौट गर्नुहोस्:\n\nWelcome! Please select the brand you want to connect with:',
+  text: 'नमस्ते! CLAREN & FLOVAX मा स्वागत छ। 🙏\nकृपया आफूले चाहेको ब्रान्ड छनौट गर्नुहोस्:\n\nWelcome! Please select the brand you want to connect with:',
   next: 'city',
   options: [
     { id: 'brand_flovax', title: 'FLOVAX (Nepal)', description: 'नेपाल डिलरशिप (Nepal Dealership)' },
-    { id: 'brand_aguaone', title: 'AGUAONE (India)', description: 'India Dealership (भारत डिलरशिप)' }
+    { id: 'brand_claren', title: 'CLAREN (India)', description: 'India Dealership (भारत डिलरशिप)' }
   ]
 };
 
@@ -143,9 +143,9 @@ export const FLOVAX_THANK_YOU = 'धन्यवाद! 🙏\nतपाईंक
 export const FLOVAX_RETRY_PREFIX = 'कृपया तल दिइएका विकल्पहरू मध्ये एक छनौट गर्नुहोस् 🙏\n\n';
 
 // -------------------------------------------------------------
-// AGUAONE (India Dealership Form — 7 Questions in Hindi/Hinglish)
+// CLAREN (India Dealership Form — 7 Questions in Hindi/Hinglish)
 // -------------------------------------------------------------
-export const AGUAONE_QUESTIONS: Record<string, QuestionStep> = {
+export const CLAREN_QUESTIONS: Record<string, QuestionStep> = {
   city: {
     type: 'list',
     text: 'बहुत बढ़िया! 👍\nआप किस शहर से हैं?',
@@ -185,7 +185,7 @@ export const AGUAONE_QUESTIONS: Record<string, QuestionStep> = {
   },
   opportunity: {
     type: 'list',
-    text: 'आप AGUAONE में किस तरह की business opportunity देख रहे हैं?',
+    text: 'आप CLAREN में किस तरह की business opportunity देख रहे हैं?',
     next: 'budget',
     options: [
       { id: 'retail_dealership', title: 'Retail Dealership' },
@@ -225,7 +225,7 @@ export const AGUAONE_QUESTIONS: Record<string, QuestionStep> = {
   }
 };
 
-export const AGUAONE_ORDER = [
+export const CLAREN_ORDER = [
   'city',
   'shop_status',
   'experience',
@@ -235,13 +235,13 @@ export const AGUAONE_ORDER = [
   'gst_status'
 ];
 
-export const AGUAONE_THANK_YOU = 'धन्यवाद! 🙏\nआपकी जानकारी हमें मिल गई है।\nहमारी AGUAONE team आपसे जल्द ही संपर्क करेगी।';
-export const AGUAONE_RETRY_PREFIX = 'कृपया नीचे दिए गए विकल्पों में से एक चुनें 🙏\n\n';
+export const CLAREN_THANK_YOU = 'धन्यवाद! 🙏\nआपकी जानकारी हमें मिल गई है।\nहमारी CLAREN team आपसे जल्द ही संपर्क करेगी।';
+export const CLAREN_RETRY_PREFIX = 'कृपया नीचे दिए गए विकल्पों में से एक चुनें 🙏\n\n';
 
 export const RESTART_WORDS = new Set(['restart', 'restart survey', 'start over', 'सुरु गर', 'शुरू करो', 'रिसर्च']);
 
-// Backward-compatible fallback references
-export const QUESTIONS = AGUAONE_QUESTIONS;
-export const ORDER = AGUAONE_ORDER;
-export const THANK_YOU_REPLY = AGUAONE_THANK_YOU;
-export const RETRY_PREFIX = AGUAONE_RETRY_PREFIX;
+// Fallback references
+export const QUESTIONS = CLAREN_QUESTIONS;
+export const ORDER = CLAREN_ORDER;
+export const THANK_YOU_REPLY = CLAREN_THANK_YOU;
+export const RETRY_PREFIX = CLAREN_RETRY_PREFIX;

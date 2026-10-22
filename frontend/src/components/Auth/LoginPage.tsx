@@ -33,9 +33,9 @@ export const LoginPage: React.FC = () => {
       <div className="h-56 bg-wa-teal w-full absolute top-0 left-0 z-0">
         <div className="max-w-4xl mx-auto px-6 pt-8 flex items-center space-x-3 text-white">
           <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center font-bold text-xl">
-            A
+            C
           </div>
-          <span className="font-bold tracking-wide text-lg">AGUAONE WHATSAPP PLATFORM</span>
+          <span className="font-bold tracking-wide text-lg">CLAREN WHATSAPP PLATFORM</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export const LoginPage: React.FC = () => {
 
       {/* Footer */}
       <div className="text-center py-4 text-xs text-gray-500 z-10">
-        AGUAONE Lead Qualification Bot & Agent CRM • Ultra-Low Latency VPS Edition
+        CLAREN Lead Qualification Bot & Agent CRM • Ultra-Low Latency VPS Edition
       </div>
     </div>
   );
