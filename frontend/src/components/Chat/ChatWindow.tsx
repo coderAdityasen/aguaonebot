@@ -238,7 +238,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       ? 'bg-red-100 text-red-700'
                       : 'bg-emerald-100 text-emerald-800'
                   }`}>
-                    {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 CLAREN'}
+                    {contact.brand.toLowerCase() === 'flovax'
+                      ? (contact.country?.toLowerCase() === 'india' ? '🇮🇳 FLOVAX India' : '🇳🇵 FLOVAX Nepal')
+                      : '🇮🇳 CLAREN'}
                   </span>
                 )}
               </div>

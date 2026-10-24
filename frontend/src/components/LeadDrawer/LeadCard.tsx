@@ -74,9 +74,13 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   };
 
   const isFlovax = contact.brand?.toLowerCase() === 'flovax';
+  const flovaxIndia = isFlovax && contact.country?.toLowerCase() === 'india';
 
   const surveyFields = [
-    { label: 'Brand Track', value: contact.brand ? (isFlovax ? '🇳🇵 FLOVAX (Nepal)' : '🇮🇳 CLAREN (India)') : '', icon: Building2, color: 'text-sky-500' },
+    { label: 'Brand Track', value: contact.brand ? (isFlovax ? (flovaxIndia ? '🇮🇳 FLOVAX (India)' : '🇳🇵 FLOVAX (Nepal)') : '🇮🇳 CLAREN (India)') : '', icon: Building2, color: 'text-sky-500' },
+    ...(isFlovax ? [
+      { label: 'Country', value: flovaxIndia ? 'India' : 'Nepal', icon: MapPin, color: 'text-sky-600' }
+    ] : []),
     { label: 'City / District', value: contact.city, icon: MapPin, color: 'text-rose-500' },
     ...(contact.category ? [
       { label: 'Category', value: contact.category, icon: Layers, color: 'text-cyan-500' }
@@ -89,7 +93,11 @@ export const LeadCard: React.FC<LeadCardProps> = ({
     ...(isFlovax ? [
       { label: 'Import License', value: contact.import_license, icon: Building2, color: 'text-blue-600' },
       { label: 'Import Experience', value: contact.import_experience, icon: Clock, color: 'text-teal-600' },
-      { label: 'PAN / Registration', value: contact.pan_registration, icon: Store, color: 'text-violet-600' }
+      ...(flovaxIndia ? [
+        { label: 'GST Registration', value: contact.gst_status, icon: Building2, color: 'text-emerald-600' }
+      ] : [
+        { label: 'PAN / Registration', value: contact.pan_registration, icon: Store, color: 'text-violet-600' }
+      ])
     ] : [
       { label: 'GST Registration', value: contact.gst_status, icon: Building2, color: 'text-emerald-600' }
     ])
@@ -198,7 +206,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
           {/* Brand Tag */}
           {contact.brand && (
             <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800">
-              {isFlovax ? '🇳🇵 FLOVAX Dealership' : '🇮🇳 CLAREN Dealership'}
+              {isFlovax ? (flovaxIndia ? '🇮🇳 FLOVAX India' : '🇳🇵 FLOVAX Nepal') : '🇮🇳 CLAREN Dealership'}
             </div>
           )}
 
@@ -224,7 +232,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center space-x-1">
-              <span>{isFlovax ? 'FLOVAX (Nepal)' : 'CLAREN'} Survey Answers</span>
+              <span>{isFlovax ? (flovaxIndia ? 'FLOVAX (India)' : 'FLOVAX (Nepal)') : 'CLAREN'} Survey Answers</span>
             </h4>
             {contact.qualified ? (
               <span className="flex items-center space-x-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">

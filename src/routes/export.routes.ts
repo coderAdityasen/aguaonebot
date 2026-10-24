@@ -30,6 +30,14 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       return val;
     };
 
+    const countryLabel = (lead: any) => {
+      const country = (lead.country || '').toLowerCase();
+      if (country === 'india') return 'India';
+      if (country === 'nepal') return 'Nepal';
+      if ((lead.brand || '').toLowerCase() === 'flovax') return 'Nepal';
+      return '';
+    };
+
     let headers: string[] = [];
     let rowBuilder: (lead: any) => string[];
 
@@ -38,6 +46,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         'Phone',
         'Name',
         'Brand',
+        'Country',
         'City / District',
         'Shop Status',
         'Experience',
@@ -47,6 +56,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         'Import License',
         'Import Experience',
         'PAN Registration',
+        'GST Status',
         'Lead Status',
         'Bot Active',
         'Created At',
@@ -56,6 +66,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         escapeCsv(lead.phone),
         escapeCsv(lead.name),
         escapeCsv(lead.brand ? lead.brand.toUpperCase() : 'FLOVAX'),
+        escapeCsv(countryLabel(lead)),
         escapeCsv(lead.city),
         escapeCsv(lead.shop_status),
         escapeCsv(lead.experience),
@@ -65,6 +76,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         escapeCsv(lead.import_license),
         escapeCsv(lead.import_experience),
         escapeCsv(lead.pan_registration),
+        escapeCsv(lead.gst_status),
         escapeCsv(lead.lead_status),
         escapeCsv(lead.bot_active === 0 ? 'No (Human Handoff)' : 'Yes (Bot Active)'),
         escapeCsv(lead.created_at),
@@ -111,6 +123,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         'Phone',
         'Name',
         'Brand',
+        'Country',
         'City',
         'Category',
         'Shop Status',
@@ -131,6 +144,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         escapeCsv(lead.phone),
         escapeCsv(lead.name),
         escapeCsv(lead.brand ? lead.brand.toUpperCase() : ''),
+        escapeCsv(countryLabel(lead)),
         escapeCsv(lead.city),
         escapeCsv(lead.category),
         escapeCsv(lead.shop_status),

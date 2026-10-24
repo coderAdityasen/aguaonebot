@@ -262,7 +262,7 @@ export const MetaSettingsModal: React.FC<MetaSettingsModalProps> = ({
               <button
                 onClick={() => { setSimText('flovax'); }}
                 className="px-2 py-1.5 bg-blue-50 border border-blue-300 text-blue-800 hover:bg-blue-100 rounded text-xs font-semibold"
-                title="Simulate FLOVAX Nepal Flow"
+                title="Simulate FLOVAX flow"
               >
                 "flovax"
               </button>

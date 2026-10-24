@@ -50,7 +50,8 @@ export async function sendWhatsAppMessage(
 export function buildInteractiveListPayload(
   to: string,
   bodyText: string,
-  options: QuestionOption[]
+  options: QuestionOption[],
+  buttonLabel: string = 'विकल्प चुनें'
 ) {
   return {
     messaging_product: 'whatsapp',
@@ -61,7 +62,7 @@ export function buildInteractiveListPayload(
       type: 'list',
       body: { text: bodyText },
       action: {
-        button: 'विकल्प चुनें',
+        button: buttonLabel,
         sections: [
           {
             title: 'Options',

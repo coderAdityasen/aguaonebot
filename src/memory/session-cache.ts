@@ -5,6 +5,7 @@ export interface ContactSession {
   phone: string;
   name: string;
   brand: string; // 'claren' | 'flovax' | ''
+  country: string; // 'india' | 'nepal' | ''
   state: string;
   lead_status: string;
   bot_active: number;
@@ -65,6 +66,7 @@ export function getSession(phone: string): ContactSession {
         phone: row.phone,
         name: row.name || 'Customer',
         brand: row.brand || '',
+        country: row.country || '',
         state: row.state || 'new',
         lead_status: row.lead_status || 'IN_PROGRESS',
         bot_active: typeof row.bot_active === 'number' ? row.bot_active : 1,
@@ -91,6 +93,7 @@ export function getSession(phone: string): ContactSession {
         phone,
         name: 'Customer',
         brand: '',
+        country: '',
         state: 'new',
         lead_status: 'IN_PROGRESS',
         bot_active: 1,

@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS contacts (
     phone TEXT PRIMARY KEY,
     name TEXT DEFAULT 'Customer',
     brand TEXT DEFAULT '',
+    country TEXT DEFAULT '',
     state TEXT DEFAULT 'new',
     lead_status TEXT DEFAULT 'IN_PROGRESS',
     bot_active INTEGER DEFAULT 1,

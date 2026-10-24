@@ -1,16 +1,23 @@
 import { ContactSession } from '../memory/session-cache';
-import { 
+import {
   BRAND_CHOOSER,
+  FLOVAX_COUNTRY,
+  FLOVAX_COUNTRY_RETRY,
   FLOVAX_QUESTIONS,
   FLOVAX_ORDER,
   FLOVAX_THANK_YOU,
   FLOVAX_RETRY_PREFIX,
+  FLOVAX_INDIA_QUESTIONS,
+  FLOVAX_INDIA_ORDER,
+  FLOVAX_INDIA_THANK_YOU,
+  FLOVAX_INDIA_RETRY_PREFIX,
   CLAREN_QUESTIONS,
   CLAREN_ORDER,
   CLAREN_THANK_YOU,
   CLAREN_RETRY_PREFIX,
   RESTART_WORDS,
-  QuestionOption 
+  QuestionOption,
+  QuestionStep
 } from './questions';
 
 export interface RouteResult {
@@ -20,6 +27,156 @@ export interface RouteResult {
   options: QuestionOption[];
   action: string;
   updatedSession: ContactSession;
+}
+
+function ask(action: string, step: QuestionStep, updated: ContactSession): RouteResult {
+  const isText = step.type === 'text' || step.options.length === 0;
+  return {
+    shouldReply: true,
+    replyType: isText ? 'text' : 'list',
+    replyText: step.text,
+    options: [...step.options],
+    action,
+    updatedSession: updated
+  };
+}
+
+function clearAnswers(updated: ContactSession) {
+  updated.country = '';
+  updated.city = '';
+  updated.category = '';
+  updated.shop_status = '';
+  updated.experience = '';
+  updated.opportunity = '';
+  updated.budget = '';
+  updated.firm_name = '';
+  updated.import_license = '';
+  updated.import_experience = '';
+  updated.pan_registration = '';
+  updated.gst_status = '';
+  updated.qualified = 0;
+  updated.lead_status = 'IN_PROGRESS';
+  updated.bot_active = 1;
+}
+
+function startCountry(updated: ContactSession, action: string): RouteResult {
+  updated.brand = 'flovax';
+  updated.country = '';
+  updated.state = 'country_select';
+  return ask(action, FLOVAX_COUNTRY, updated);
+}
+
+function startFlovaxNepal(updated: ContactSession, action: string): RouteResult {
+  updated.brand = 'flovax';
+  updated.country = 'nepal';
+  updated.state = 'city';
+  return ask(action, FLOVAX_QUESTIONS.city, updated);
+}
+
+function startFlovaxIndia(updated: ContactSession, action: string): RouteResult {
+  updated.brand = 'flovax';
+  updated.country = 'india';
+  updated.state = 'city';
+  return ask(action, FLOVAX_INDIA_QUESTIONS.city, updated);
+}
+
+function startClaren(updated: ContactSession, action: string): RouteResult {
+  updated.brand = 'claren';
+  updated.country = '';
+  updated.state = 'city';
+  return ask(action, CLAREN_QUESTIONS.city, updated);
+}
+
+function detectMentions(lower: string, selOpt: string, selTitle: string, state: string) {
+  const title = selTitle.toLowerCase();
+  const flovax = lower.includes('flovax')
+    || selOpt === 'brand_flovax'
+    || title.includes('flovax')
+    || (state === 'brand_select' && lower === '1');
+  const claren = lower.includes('claren')
+    || lower.includes('aguaone')
+    || selOpt === 'brand_claren'
+    || selOpt === 'brand_aguaone'
+    || title.includes('claren')
+    || title.includes('aguaone')
+    || (state === 'brand_select' && lower === '2');
+  const india = selOpt === 'country_india'
+    || lower.includes('india')
+    || lower.includes('भारत')
+    || title.includes('india')
+    || title.includes('भारत');
+  const nepal = selOpt === 'country_nepal'
+    || lower.includes('nepal')
+    || lower.includes('नेपाल')
+    || title.includes('nepal')
+    || title.includes('नेपाल');
+  return { flovax, claren, india, nepal };
+}
+
+// "India" starts CLAREN only when FLOVAX was not chosen.
+// After FLOVAX, India and Nepal only pick the country.
+function beginFromIntent(
+  updated: ContactSession,
+  mentions: { flovax: boolean; claren: boolean; india: boolean; nepal: boolean },
+  wasFlovax: boolean,
+  wasClaren: boolean,
+  prefix: 'START' | 'RESTART'
+): RouteResult {
+  const { flovax, claren, india, nepal } = mentions;
+
+  if (claren && !flovax) {
+    return startClaren(updated, `${prefix}_CLAREN`);
+  }
+  if (flovax && india && !claren) {
+    return startFlovaxIndia(updated, `${prefix}_FLOVAX_INDIA`);
+  }
+  if ((flovax && nepal && !claren) || (!flovax && !claren && !wasFlovax && nepal && !india)) {
+    return startFlovaxNepal(updated, `${prefix}_FLOVAX_NEPAL`);
+  }
+  if (flovax && !claren) {
+    return startCountry(updated, `${prefix}_FLOVAX_COUNTRY`);
+  }
+  if (wasFlovax && india && !claren) {
+    return startFlovaxIndia(updated, `${prefix}_FLOVAX_INDIA`);
+  }
+  if (wasFlovax && nepal && !claren) {
+    return startFlovaxNepal(updated, `${prefix}_FLOVAX_NEPAL`);
+  }
+  if (wasFlovax) {
+    return startCountry(updated, `${prefix}_FLOVAX_COUNTRY`);
+  }
+  if (india && !nepal) {
+    return startClaren(updated, `${prefix}_CLAREN`);
+  }
+  if (nepal && !india) {
+    return startFlovaxNepal(updated, `${prefix}_FLOVAX_NEPAL`);
+  }
+  if (wasClaren) {
+    return startClaren(updated, `${prefix}_CLAREN`);
+  }
+
+  updated.brand = '';
+  updated.country = '';
+  updated.state = 'brand_select';
+  return ask(`${prefix}_BRAND_CHOOSER`, BRAND_CHOOSER, updated);
+}
+
+function matchCountry(lower: string, selOpt: string, selTitle: string): 'india' | 'nepal' | null {
+  const title = selTitle.toLowerCase();
+  const india = selOpt === 'country_india'
+    || lower === '1'
+    || lower.includes('india')
+    || lower.includes('भारत')
+    || title.includes('india')
+    || title.includes('भारत');
+  const nepal = selOpt === 'country_nepal'
+    || lower === '2'
+    || lower.includes('nepal')
+    || lower.includes('नेपाल')
+    || title.includes('nepal')
+    || title.includes('नेपाल');
+  if (india === nepal) return null;
+  return india ? 'india' : 'nepal';
 }
 
 export function routeConversation(
@@ -33,93 +190,24 @@ export function routeConversation(
   const selOpt = (selectedOption || '').trim();
   const selTitle = (selectedTitle || '').trim();
 
-  // Clone session to avoid side-effects before completing transition
   const updated: ContactSession = { ...session };
   updated.last_message = rawText || selTitle;
 
-  // 1. Restart Command Handling (Checked FIRST so customer can restart at any point)
-  if (RESTART_WORDS.has(lower) || lower === 'restart' || lower.startsWith('restart ')) {
-    updated.city = '';
-    updated.category = '';
-    updated.shop_status = '';
-    updated.experience = '';
-    updated.opportunity = '';
-    updated.budget = '';
-    updated.firm_name = '';
-    updated.import_license = '';
-    updated.import_experience = '';
-    updated.pan_registration = '';
-    updated.gst_status = '';
-    updated.qualified = 0;
-    updated.lead_status = 'IN_PROGRESS';
-    updated.bot_active = 1;
+  const mentions = detectMentions(lower, selOpt, selTitle, updated.state);
+  const wasFlovax = updated.brand === 'flovax';
+  const wasClaren = updated.brand === 'claren' || updated.brand === 'aguaone';
 
-    if (lower.includes('flovax') || lower.includes('nepal') || lower.includes('नेपाल')) {
-      updated.brand = 'flovax';
-      updated.state = 'city';
-      const q = FLOVAX_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'RESTART_FLOVAX',
-        updatedSession: updated
-      };
-    } else if (lower.includes('claren') || lower.includes('india') || lower.includes('भारत')) {
-      updated.brand = 'claren';
-      updated.state = 'city';
-      const q = CLAREN_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'RESTART_CLAREN',
-        updatedSession: updated
-      };
-    } else if (updated.brand === 'flovax') {
-      updated.state = 'city';
-      const q = FLOVAX_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'RESTART_FLOVAX',
-        updatedSession: updated
-      };
-    } else if (updated.brand === 'claren' || updated.brand === 'aguaone') {
-      updated.brand = 'claren';
-      updated.state = 'city';
-      const q = CLAREN_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'RESTART_CLAREN',
-        updatedSession: updated
-      };
-    } else {
-      updated.brand = '';
-      updated.state = 'brand_select';
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: BRAND_CHOOSER.text,
-        options: [...BRAND_CHOOSER.options],
-        action: 'RESTART_BRAND_CHOOSER',
-        updatedSession: updated
-      };
-    }
+  // 1. Restart is checked first so the customer can restart at any point.
+  if (RESTART_WORDS.has(lower) || lower === 'restart' || lower.startsWith('restart ')) {
+    clearAnswers(updated);
+    return beginFromIntent(updated, mentions, wasFlovax, wasClaren, 'RESTART');
   }
 
-  // 2. Terminal Check: If already qualified, in handoff, or bot paused -> Keep silent
+  // 2. Terminal check: qualified, handed off, or bot paused -> stay silent.
   if (
-    updated.state === 'handoff' || 
-    updated.lead_status === 'HANDOFF' || 
-    updated.qualified === 1 || 
+    updated.state === 'handoff' ||
+    updated.lead_status === 'HANDOFF' ||
+    updated.qualified === 1 ||
     updated.bot_active === 0
   ) {
     updated.state = 'handoff';
@@ -135,157 +223,74 @@ export function routeConversation(
     };
   }
 
-  // 3. Brand Detection Logic & Synonyms (Supports 1/2, Nepal/India, Flovax/Claren)
-  const isFlovaxIntent = 
-    lower.includes('flovax') || 
-    lower.includes('nepal') || 
-    lower.includes('नेपाल') || 
-    selOpt === 'brand_flovax' || 
-    (updated.state === 'brand_select' && (lower === '1' || selTitle.includes('FLOVAX')));
-
-  const isClarenIntent = 
-    lower.includes('claren') || 
-    lower.includes('aguaone') || 
-    lower.includes('india') || 
-    lower.includes('भारत') || 
-    selOpt === 'brand_claren' || 
-    selOpt === 'brand_aguaone' || 
-    (updated.state === 'brand_select' && (lower === '2' || selTitle.toUpperCase().includes('CLAREN') || selTitle.toUpperCase().includes('AGUAONE')));
-
-  if (!updated.brand) {
-    if (isFlovaxIntent && !isClarenIntent) {
-      updated.brand = 'flovax';
-      updated.state = 'city';
-      const q = FLOVAX_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'START_FLOVAX',
-        updatedSession: updated
-      };
-    } else if (isClarenIntent && !isFlovaxIntent) {
-      updated.brand = 'claren';
-      updated.state = 'city';
-      const q = CLAREN_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'START_CLAREN',
-        updatedSession: updated
-      };
-    } else {
-      // Prompt user to select brand
-      updated.state = 'brand_select';
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: BRAND_CHOOSER.text,
-        options: [...BRAND_CHOOSER.options],
-        action: 'PROMPT_BRAND_CHOOSER',
-        updatedSession: updated
-      };
-    }
+  // 3. No brand yet, or still on the brand list.
+  if (!updated.brand || updated.state === 'brand_select') {
+    return beginFromIntent(updated, mentions, false, false, 'START');
   }
 
-  // 4. Handle Brand Selection State
-  if (updated.state === 'brand_select') {
-    if (isFlovaxIntent) {
-      updated.brand = 'flovax';
-      updated.state = 'city';
-      const q = FLOVAX_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'START_FLOVAX',
-        updatedSession: updated
-      };
-    } else if (isClarenIntent) {
-      updated.brand = 'claren';
-      updated.state = 'city';
-      const q = CLAREN_QUESTIONS.city;
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: q.text,
-        options: [...q.options],
-        action: 'START_CLAREN',
-        updatedSession: updated
-      };
-    } else {
-      return {
-        shouldReply: true,
-        replyType: 'list',
-        replyText: BRAND_CHOOSER.text,
-        options: [...BRAND_CHOOSER.options],
-        action: 'RETRY_BRAND_CHOOSER',
-        updatedSession: updated
-      };
-    }
-  }
-
-  // 5. Active Survey Routing by Brand
   if (updated.brand === 'aguaone') {
     updated.brand = 'claren';
   }
+
+  // 4. FLOVAX country step. "India" here stays on FLOVAX.
+  if (updated.brand === 'flovax' && updated.state === 'country_select') {
+    const picked = matchCountry(lower, selOpt, selTitle);
+    if (picked === 'india') return startFlovaxIndia(updated, 'START_FLOVAX_INDIA');
+    if (picked === 'nepal') return startFlovaxNepal(updated, 'START_FLOVAX_NEPAL');
+    return ask('RETRY_FLOVAX_COUNTRY', {
+      ...FLOVAX_COUNTRY,
+      text: FLOVAX_COUNTRY_RETRY + FLOVAX_COUNTRY.text
+    }, updated);
+  }
+
+  // Chats that started before the country step stay on the Nepali form.
+  if (updated.brand === 'flovax' && updated.country !== 'india' && updated.country !== 'nepal') {
+    if (FLOVAX_ORDER.includes(updated.state)) {
+      updated.country = 'nepal';
+    } else {
+      return startCountry(updated, 'PROMPT_FLOVAX_COUNTRY');
+    }
+  }
+
+  // 5. Active survey by brand and, for FLOVAX, by country.
+  const flovaxIndia = updated.brand === 'flovax' && updated.country === 'india';
   const isFlovax = updated.brand === 'flovax';
-  const questions = isFlovax ? FLOVAX_QUESTIONS : CLAREN_QUESTIONS;
-  const order = isFlovax ? FLOVAX_ORDER : CLAREN_ORDER;
-  const thankYouText = isFlovax ? FLOVAX_THANK_YOU : CLAREN_THANK_YOU;
-  const retryPrefix = isFlovax ? FLOVAX_RETRY_PREFIX : CLAREN_RETRY_PREFIX;
-  const terminalQuestion = isFlovax ? 'pan_registration' : 'gst_status';
+  const questions = flovaxIndia ? FLOVAX_INDIA_QUESTIONS : isFlovax ? FLOVAX_QUESTIONS : CLAREN_QUESTIONS;
+  const order = flovaxIndia ? FLOVAX_INDIA_ORDER : isFlovax ? FLOVAX_ORDER : CLAREN_ORDER;
+  const thankYouText = flovaxIndia ? FLOVAX_INDIA_THANK_YOU : isFlovax ? FLOVAX_THANK_YOU : CLAREN_THANK_YOU;
+  const retryPrefix = flovaxIndia ? FLOVAX_INDIA_RETRY_PREFIX : isFlovax ? FLOVAX_RETRY_PREFIX : CLAREN_RETRY_PREFIX;
+  const terminalQuestion = flovaxIndia ? 'gst_status' : isFlovax ? 'pan_registration' : 'gst_status';
 
   let currentState = updated.state || 'new';
   if (currentState === 'new' || !order.includes(currentState)) {
     updated.state = 'city';
-    const q = questions.city;
-    return {
-      shouldReply: true,
-      replyType: 'list',
-      replyText: q.text,
-      options: [...q.options],
-      action: 'START_' + updated.brand.toUpperCase(),
-      updatedSession: updated
-    };
+    return ask('START_' + updated.brand.toUpperCase(), questions.city, updated);
   }
 
   const q = questions[currentState];
 
-  // ----------------------------------------------------------------------
-  // Case A: Free-form Text Question (e.g. firm_name)
-  // ----------------------------------------------------------------------
+  // Case A: free-text question (India city, or firm name on every track).
   if (q.type === 'text') {
     const enteredText = (rawText || selTitle).trim();
-    if (enteredText.length < 2) {
-      const promptText = isFlovax
-        ? 'तपाईंको फर्म / व्यवसायको नाम के हो? 🏢\nकृपया आफ्नो दर्ता भएको वा व्यवसायमा प्रयोग हुने फर्मको नाम लेख्नुहोस्:'
-        : 'आपकी Firm / Business का नाम क्या है? 🏢\nकृपया अपनी पंजीकृत (registered) या व्यावसायिक फ़र्म का नाम लिखें:';
-
+    const cityIsNumeric = currentState === 'city' && /^\d+$/.test(enteredText);
+    if (enteredText.length < 2 || cityIsNumeric) {
       return {
         shouldReply: true,
         replyType: 'text',
-        replyText: promptText,
+        replyText: q.text,
         options: [],
-        action: 'INVALID_FIRM_NAME_RETRY',
+        action: 'INVALID_TEXT_RETRY',
         updatedSession: updated
       };
     }
 
-    // Save free-text firm name
     (updated as any)[currentState] = enteredText;
 
-    // Check if this text question was the terminal question (it's not, but safe check)
     if (currentState === terminalQuestion) {
       updated.qualified = 1;
       updated.lead_status = 'HANDOFF';
       updated.state = 'handoff';
       updated.bot_active = 0;
-
       return {
         shouldReply: true,
         replyType: 'text',
@@ -296,36 +301,21 @@ export function routeConversation(
       };
     }
 
-    // Advance to next question
     const nextKey = q.next;
     updated.state = nextKey;
-    const nextQ = questions[nextKey];
-
-    return {
-      shouldReply: true,
-      replyType: nextQ.type === 'text' ? 'text' : 'list',
-      replyText: nextQ.text,
-      options: nextQ.options ? [...nextQ.options] : [],
-      action: 'ANSWER_ACCEPTED_TEXT',
-      updatedSession: updated
-    };
+    return ask('ANSWER_ACCEPTED_TEXT', questions[nextKey], updated);
   }
 
-  // ----------------------------------------------------------------------
-  // Case B: Interactive List Question
-  // ----------------------------------------------------------------------
+  // Case B: interactive list question.
   let matched: QuestionOption | null = null;
 
-  // Primary: Match by interactive Option ID
   if (selOpt) {
     matched = q.options.find(o => o.id === selOpt) || null;
   }
 
-  // Fallback: Match by numeric index (1, 2, 3), exact title, description, or length-guarded substring
   if (!matched) {
     const candidate = (selTitle || rawText).toLowerCase().trim();
     if (candidate) {
-      // 1. Numeric index match (e.g. user sends "1", "2", "3")
       const numMatch = candidate.match(/^(\d+)$/);
       if (numMatch) {
         const idx = parseInt(numMatch[1], 10) - 1;
@@ -334,14 +324,12 @@ export function routeConversation(
         }
       }
 
-      // 2. Exact match on title or description
       if (!matched) {
         matched = q.options.find(o => o.title.toLowerCase() === candidate)
           || q.options.find(o => o.description && o.description.toLowerCase() === candidate)
           || null;
       }
 
-      // 3. Substring match ONLY if input has at least 3 characters (avoids single-letter false matches)
       if (!matched && candidate.length >= 3) {
         matched = q.options.find(o => candidate.includes(o.title.toLowerCase()))
           || q.options.find(o => o.title.toLowerCase().includes(candidate))
@@ -349,7 +337,6 @@ export function routeConversation(
           || null;
       }
 
-      // 4. Import license short answer keywords (Yes/No, छ/छैन, ho/hoina)
       if (!matched && currentState === 'import_license') {
         const c = candidate.trim();
         if (['छ', 'हो', 'yes', 'ha', 'haa', 'cha', 'available', 'y'].includes(c)) {
@@ -361,13 +348,9 @@ export function routeConversation(
     }
   }
 
-  // ----------------------------------------------------------------------
-  // SPECIAL CASE: City Question (Flovax & Claren)
-  // Accept user's typed city name directly if they didn't select from list
-  // ----------------------------------------------------------------------
+  // Nepal and CLAREN city lists also accept a typed city name.
   if (!matched && currentState === 'city') {
     const rawCity = (rawText || selTitle).trim();
-    // Accept any realistic city name (at least 2 letters, not pure numbers, not restart command)
     if (rawCity.length >= 2 && !/^\d+$/.test(rawCity) && !RESTART_WORDS.has(rawCity.toLowerCase())) {
       matched = {
         id: 'custom_city',
@@ -376,7 +359,6 @@ export function routeConversation(
     }
   }
 
-  // Invalid choice: prompt to choose an option
   if (!matched) {
     return {
       shouldReply: true,
@@ -388,19 +370,16 @@ export function routeConversation(
     };
   }
 
-  // Save selected option title
   (updated as any)[currentState] = matched.title;
   if (currentState === 'city') {
     updated.city = matched.title;
   }
 
-  // Check if terminal question reached
   if (currentState === terminalQuestion) {
     updated.qualified = 1;
     updated.lead_status = 'HANDOFF';
     updated.state = 'handoff';
-    updated.bot_active = 0; // Handoff to human agent
-
+    updated.bot_active = 0;
     return {
       shouldReply: true,
       replyType: 'text',
@@ -411,33 +390,19 @@ export function routeConversation(
     };
   }
 
-  // Advance to next question
   let nextKey = q.next;
 
-  // Flovax Import License Branching:
-  // Show 'import_experience' ONLY when user selects 'Yes' (license_yes).
-  // Otherwise, skip 'import_experience' and proceed directly to 'pan_registration'.
-  if (currentState === 'import_license') {
-    const isLicenseYes = matched.id === 'license_yes';
-
-    if (isLicenseYes) {
+  // Import experience is asked only when the firm has an import license.
+  // Otherwise skip it and ask the last question: GST in India, registration in Nepal.
+  if (isFlovax && currentState === 'import_license') {
+    if (matched.id === 'license_yes') {
       nextKey = 'import_experience';
     } else {
-      // User does not have an import license: skip experience and jump to pan registration
-      nextKey = 'pan_registration';
+      nextKey = flovaxIndia ? 'gst_status' : 'pan_registration';
       updated.import_experience = 'N/A — No Import License';
     }
   }
 
   updated.state = nextKey;
-  const nextQ = questions[nextKey];
-
-  return {
-    shouldReply: true,
-    replyType: nextQ.type === 'text' ? 'text' : 'list',
-    replyText: nextQ.text,
-    options: nextQ.options ? [...nextQ.options] : [],
-    action: 'ANSWER_ACCEPTED',
-    updatedSession: updated
-  };
+  return ask('ANSWER_ACCEPTED', questions[nextKey], updated);
 }

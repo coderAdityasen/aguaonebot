@@ -283,7 +283,13 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         // If bot decided to reply
         let payload: any;
         if (routeResult.replyType === 'list') {
-          payload = buildInteractiveListPayload(phone, routeResult.replyText, routeResult.options);
+          const sessionAfter = routeResult.updatedSession;
+          const listButton = sessionAfter.brand === 'flovax' && sessionAfter.country === 'india'
+            ? 'Choose option'
+            : sessionAfter.state === 'country_select'
+              ? 'Select'
+              : 'विकल्प चुनें';
+          payload = buildInteractiveListPayload(phone, routeResult.replyText, routeResult.options, listButton);
         } else {
           payload = buildTextPayload(phone, routeResult.replyText);
         }

@@ -298,7 +298,9 @@ export const ContactList: React.FC<ContactListProps> = ({
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {contact.brand.toLowerCase() === 'flovax' ? '🇳🇵 FLOVAX' : '🇮🇳 CLAREN'}
+                        {contact.brand.toLowerCase() === 'flovax'
+                          ? (contact.country?.toLowerCase() === 'india' ? '🇮🇳 FLOVAX India' : '🇳🇵 FLOVAX Nepal')
+                          : '🇮🇳 CLAREN'}
                       </span>
                     )}
 

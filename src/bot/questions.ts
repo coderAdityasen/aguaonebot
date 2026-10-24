@@ -11,6 +11,14 @@ export interface QuestionStep {
   options: QuestionOption[];
 }
 
+// Shared GST choices. CLAREN and FLOVAX India both end on this question.
+export const GST_OPTIONS: QuestionOption[] = [
+  { id: 'gst_registered', title: 'Yes — GST Registered' },
+  { id: 'gst_not_registered', title: 'No — Not Registered' },
+  { id: 'gst_in_process', title: 'Applied — In Process', description: 'GST Application in Process' },
+  { id: 'gst_not_applicable', title: 'Not Applicable' }
+];
+
 // -------------------------------------------------------------
 // Brand Selector (Triggered when user does not mention brand)
 // -------------------------------------------------------------
@@ -19,7 +27,7 @@ export const BRAND_CHOOSER: QuestionStep = {
   text: 'नमस्ते! CLAREN & FLOVAX मा स्वागत छ। 🙏\nकृपया आफूले चाहेको ब्रान्ड छनौट गर्नुहोस्:\n\nWelcome! Please select the brand you want to connect with:',
   next: 'city',
   options: [
-    { id: 'brand_flovax', title: 'FLOVAX (Nepal)', description: 'नेपाल डिलरशिप (Nepal Dealership)' },
+    { id: 'brand_flovax', title: 'FLOVAX', description: 'India / Nepal Dealership' },
     { id: 'brand_claren', title: 'CLAREN (India)', description: 'India Dealership (भारत डिलरशिप)' }
   ]
 };
@@ -142,6 +150,122 @@ export const FLOVAX_ORDER = [
 export const FLOVAX_THANK_YOU = 'धन्यवाद! 🙏\nतपाईंको विवरण हामीलाई प्राप्त भयो।\nहाम्रो FLOVAX टिमले तपाईंलाई छिट्टै सम्पर्क गर्नेछ।';
 export const FLOVAX_RETRY_PREFIX = 'कृपया तल दिइएका विकल्पहरू मध्ये एक छनौट गर्नुहोस् 🙏\n\n';
 
+// Asked only after the user picks FLOVAX. Nepal keeps the Nepali form above.
+export const FLOVAX_COUNTRY: QuestionStep = {
+  type: 'list',
+  text: 'धेरै राम्रो! 👍\nतपाईं कुन देशबाट हुनुहुन्छ?\n\nWhich country are you from?',
+  next: 'city',
+  options: [
+    { id: 'country_india', title: 'India', description: 'English questions' },
+    { id: 'country_nepal', title: 'Nepal', description: 'नेपाली प्रश्नहरू' }
+  ]
+};
+
+export const FLOVAX_COUNTRY_RETRY = 'कृपया India वा Nepal छनौट गर्नुहोस्.\nPlease choose India or Nepal. 🙏\n\n';
+
+// -------------------------------------------------------------
+// FLOVAX India — same steps as Nepal, in English, ending with GST
+// -------------------------------------------------------------
+export const FLOVAX_INDIA_QUESTIONS: Record<string, QuestionStep> = {
+  city: {
+    type: 'text',
+    text: 'Great! 👍\nWhich city are you from?\nPlease type your city name:',
+    next: 'shop_status',
+    options: []
+  },
+  shop_status: {
+    type: 'list',
+    text: 'Do you have your own shop?',
+    next: 'experience',
+    options: [
+      { id: 'own_shop', title: 'Yes — Own Shop' },
+      { id: 'planning_new_shop', title: 'No — Planning New Shop' }
+    ]
+  },
+  experience: {
+    type: 'list',
+    text: 'How long has your shop or business been running?',
+    next: 'opportunity',
+    options: [
+      { id: 'exp_0_1', title: '0–1 Year' },
+      { id: 'exp_1_3', title: '1–3 Years' },
+      { id: 'exp_3_5', title: '3–5 Years' },
+      { id: 'exp_5_plus', title: '5+ Years' }
+    ]
+  },
+  opportunity: {
+    type: 'list',
+    text: 'What kind of business opportunity are you looking for with FLOVAX?',
+    next: 'budget',
+    options: [
+      { id: 'retail_dealership', title: 'Retail Dealership' },
+      { id: 'import_distribution', title: 'Import & Distribution' },
+      { id: 'wholesale', title: 'Wholesale' },
+      { id: 'product_purchase', title: 'Product Purchase' }
+    ]
+  },
+  budget: {
+    type: 'list',
+    text: 'What is the approximate monthly turnover of your Sanitary / Bathroom Fittings business?',
+    next: 'firm_name',
+    options: [
+      { id: 'budget_under_50k', title: 'Under ₹50,000' },
+      { id: 'budget_50k_2l', title: '₹50,000–₹2 Lakh' },
+      { id: 'budget_2l_5l', title: '₹2 Lakh–₹5 Lakh' },
+      { id: 'budget_5l_plus', title: 'Above ₹5 Lakh' },
+      { id: 'budget_new', title: 'New Business', description: 'Starting a new business' }
+    ]
+  },
+  firm_name: {
+    type: 'text',
+    text: 'What is your firm / business name? 🏢\nPlease type your registered or trading name:',
+    next: 'import_license',
+    options: []
+  },
+  import_license: {
+    type: 'list',
+    text: 'Does your firm have an import license?',
+    next: 'import_experience',
+    options: [
+      { id: 'license_yes', title: 'Yes — Available' },
+      { id: 'license_no', title: 'No — No License' },
+      { id: 'license_process', title: 'Applied — In Process' },
+      { id: 'license_unsure', title: 'Not Sure' }
+    ]
+  },
+  import_experience: {
+    type: 'list',
+    text: 'Have you imported products from another country before?',
+    next: 'gst_status',
+    options: [
+      { id: 'imp_regular', title: 'Yes — Regularly' },
+      { id: 'imp_sometimes', title: 'Yes — Sometimes' },
+      { id: 'imp_first_time', title: 'No — First Time' }
+    ]
+  },
+  gst_status: {
+    type: 'list',
+    text: 'Does your firm have GST registration?',
+    next: 'handoff',
+    options: GST_OPTIONS
+  }
+};
+
+export const FLOVAX_INDIA_ORDER = [
+  'city',
+  'shop_status',
+  'experience',
+  'opportunity',
+  'budget',
+  'firm_name',
+  'import_license',
+  'import_experience',
+  'gst_status'
+];
+
+export const FLOVAX_INDIA_THANK_YOU = 'Thank you! 🙏\nWe have received your details.\nOur FLOVAX team will contact you shortly.';
+export const FLOVAX_INDIA_RETRY_PREFIX = 'Please choose one of the options below 🙏\n\n';
+
 // -------------------------------------------------------------
 // CLAREN (India Dealership Form — 7 Questions in Hindi/Hinglish)
 // -------------------------------------------------------------
@@ -216,12 +340,7 @@ export const CLAREN_QUESTIONS: Record<string, QuestionStep> = {
     type: 'list',
     text: 'क्या आपकी Firm के पास GST Registration है?',
     next: 'handoff',
-    options: [
-      { id: 'gst_registered', title: 'Yes — GST Registered' },
-      { id: 'gst_not_registered', title: 'No — Not Registered' },
-      { id: 'gst_in_process', title: 'Applied — In Process', description: 'GST Application in Process' },
-      { id: 'gst_not_applicable', title: 'Not Applicable' }
-    ]
+    options: GST_OPTIONS
   }
 };
 
