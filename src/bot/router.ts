@@ -267,8 +267,8 @@ function afterCountryChosen(updated: ContactSession): RouteResult {
     return startForm(updated);
   }
   if (updated.brand === 'flovax') {
-    if (updated.language === 'en' || updated.language === 'ne') return startForm(updated);
-    return askLanguage(updated, false);
+    updated.language = 'en';
+    return startForm(updated);
   }
   return askBrand(updated, false);
 }
@@ -313,12 +313,8 @@ function handleOpening(
     const picked = detectBrand(lower, selOpt, selTitle, 'brand_select', updated.country);
     if (!picked) return askBrand(updated, true);
     updated.brand = picked;
-    if (picked === 'claren') {
-      updated.language = 'en';
-      return startForm(updated);
-    }
-    if (updated.language === 'en' || updated.language === 'ne') return startForm(updated);
-    return askLanguage(updated, false);
+    updated.language = 'en';
+    return startForm(updated);
   }
 
   if (previousState === 'region_select') {

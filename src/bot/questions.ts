@@ -615,7 +615,7 @@ export const OPENING_COUNTRIES: QuestionOption[] = [
 
 export const COUNTRY_CHOOSER: QuestionStep = {
   type: 'list',
-  text: 'nWhich country are you from?',
+  text: 'hii, Which country are you from?',
   next: 'brand',
   options: OPENING_COUNTRIES
 };
@@ -626,7 +626,7 @@ export function brandChooserForCountry(country: string): QuestionStep {
   const label = COUNTRY_LABELS[country] || country;
   return {
     type: 'list',
-    text: `Thank you! 🙏\n Welcome to the Flovax and Claren.\n Which brand are you looking for please select`,
+    text: `Welcome to the *Flovax* and *Claren*.\nWhich brand are you looking for please select`,
     next: 'language',
     options: [
       { id: 'brand_flovax', title: 'FLOVAX' },
