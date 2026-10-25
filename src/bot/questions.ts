@@ -713,8 +713,8 @@ export const BRAND_CHOOSER_EN: QuestionStep = {
   text: 'Thank you! 🙏\nYou selected English.\nPlease choose a brand:',
   next: 'city',
   options: [
-    { id: 'brand_flovax', title: 'FLOVAX', description: 'Dealership' },
-    { id: 'brand_claren', title: 'CLAREN', description: 'Dealership' }
+    { id: 'brand_flovax', title: 'FLOVAX' },
+    { id: 'brand_claren', title: 'CLAREN'}
   ]
 };
 
