@@ -36,13 +36,26 @@ try {
   if (!colSet.has('pan_registration')) db.exec("ALTER TABLE contacts ADD COLUMN pan_registration TEXT DEFAULT ''");
   if (!colSet.has('gst_status')) db.exec("ALTER TABLE contacts ADD COLUMN gst_status TEXT DEFAULT ''");
   if (!colSet.has('country')) db.exec("ALTER TABLE contacts ADD COLUMN country TEXT DEFAULT ''");
+  if (!colSet.has('language')) db.exec("ALTER TABLE contacts ADD COLUMN language TEXT DEFAULT ''");
 
-  // FLOVAX chats from before the country step are Nepal.
+  // Older FLOVAX chats that were already in the Nepal form stay Nepal.
+  // English FLOVAX chats leave country blank, so do not relabel those.
   db.exec(`
     UPDATE contacts SET country = 'nepal'
     WHERE LOWER(brand) = 'flovax'
       AND (country IS NULL OR TRIM(country) = '')
-      AND state NOT IN ('', 'new', 'brand_select', 'country_select')
+      AND (language IS NULL OR TRIM(language) = '')
+      AND state NOT IN ('', 'new', 'language_select', 'region_select', 'brand_select', 'country_select')
+  `);
+  db.exec(`
+    UPDATE contacts SET language = 'en'
+    WHERE (language IS NULL OR TRIM(language) = '')
+      AND LOWER(brand) = 'flovax' AND LOWER(country) = 'india'
+  `);
+  db.exec(`
+    UPDATE contacts SET language = 'ne'
+    WHERE (language IS NULL OR TRIM(language) = '')
+      AND LOWER(brand) = 'flovax' AND LOWER(country) = 'nepal'
   `);
 
   const existingMsgCols = db.pragma('table_info(messages)') as any[];
@@ -80,20 +93,21 @@ export const statements = {
 
   upsertContact: db.prepare(`
     INSERT INTO contacts (
-      phone, name, brand, country, state, lead_status, bot_active, 
+      phone, name, brand, country, language, state, lead_status, bot_active, 
       city, category, shop_status, experience, opportunity, budget, 
       firm_name, import_license, import_experience, pan_registration, gst_status,
       qualified, unread_count, last_message, last_message_at, updated_at
     ) VALUES (
-      @phone, @name, @brand, @country, @state, @lead_status, @bot_active,
+      @phone, @name, @brand, @country, @language, @state, @lead_status, @bot_active,
       @city, @category, @shop_status, @experience, @opportunity, @budget,
       @firm_name, @import_license, @import_experience, @pan_registration, @gst_status,
       @qualified, @unread_count, @last_message, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     )
     ON CONFLICT(phone) DO UPDATE SET
       name = CASE WHEN excluded.name != 'Customer' THEN excluded.name ELSE contacts.name END,
-      brand = CASE WHEN excluded.brand != '' THEN excluded.brand ELSE contacts.brand END,
+      brand = excluded.brand,
       country = excluded.country,
+      language = excluded.language,
       state = excluded.state,
       lead_status = excluded.lead_status,
       bot_active = excluded.bot_active,
@@ -172,14 +186,14 @@ export const statements = {
   `),
 
   getQualifiedLeadsForExport: db.prepare(`
-    SELECT phone, name, brand, country, city, category, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
+    SELECT phone, name, brand, country, language, city, category, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
     FROM contacts
     WHERE qualified = 1 OR lead_status = 'HANDOFF'
     ORDER BY updated_at DESC
   `),
 
   getAllLeadsForExport: db.prepare(`
-    SELECT phone, name, brand, country, city, category, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
+    SELECT phone, name, brand, country, language, city, category, shop_status, experience, opportunity, budget, firm_name, import_license, import_experience, pan_registration, gst_status, lead_status, bot_active, created_at, updated_at
     FROM contacts
     ORDER BY updated_at DESC
   `),

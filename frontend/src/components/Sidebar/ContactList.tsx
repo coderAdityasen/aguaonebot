@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Contact } from '../../types';
 import { Search, Bot, User, Award, Settings, RefreshCw, MessageSquare, LogOut, Download } from 'lucide-react';
 import { downloadLeadsCSV } from '../../utils/export';
+import { trackLabel } from '../../utils/brandLabel';
 
 interface ContactListProps {
   contacts: Contact[];
@@ -298,9 +299,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {contact.brand.toLowerCase() === 'flovax'
-                          ? (contact.country?.toLowerCase() === 'india' ? '🇮🇳 FLOVAX India' : '🇳🇵 FLOVAX Nepal')
-                          : '🇮🇳 CLAREN'}
+                        {trackLabel(contact)}
                       </span>
                     )}
 

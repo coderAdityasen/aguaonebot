@@ -30,11 +30,20 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       return val;
     };
 
+    const countryNames: Record<string, string> = {
+      india: 'India',
+      nepal: 'Nepal',
+      bangladesh: 'Bangladesh',
+      bhutan: 'Bhutan',
+      sri_lanka: 'Sri Lanka',
+      south_africa: 'South Africa'
+    };
     const countryLabel = (lead: any) => {
       const country = (lead.country || '').toLowerCase();
-      if (country === 'india') return 'India';
-      if (country === 'nepal') return 'Nepal';
-      if ((lead.brand || '').toLowerCase() === 'flovax') return 'Nepal';
+      if (countryNames[country]) return countryNames[country];
+      const brand = (lead.brand || '').toLowerCase();
+      const language = (lead.language || '').toLowerCase();
+      if (brand === 'flovax' && language !== 'en') return 'Nepal';
       return '';
     };
 
@@ -87,6 +96,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         'Phone',
         'Name',
         'Brand',
+        'Country',
         'City',
         'Category',
         'Shop Status',
@@ -104,6 +114,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         escapeCsv(lead.phone),
         escapeCsv(lead.name),
         escapeCsv(lead.brand ? lead.brand.toUpperCase() : 'CLAREN'),
+        escapeCsv(countryLabel(lead)),
         escapeCsv(lead.city),
         escapeCsv(lead.category),
         escapeCsv(lead.shop_status),

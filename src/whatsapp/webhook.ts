@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../config/env';
 import { isDuplicateMessage, getSession, updateSession } from '../memory/session-cache';
-import { routeConversation } from '../bot/router';
+import { listButtonLabel, routeConversation } from '../bot/router';
 import { 
   sendWhatsAppMessage, 
   buildInteractiveListPayload, 
@@ -283,12 +283,7 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
         // If bot decided to reply
         let payload: any;
         if (routeResult.replyType === 'list') {
-          const sessionAfter = routeResult.updatedSession;
-          const listButton = sessionAfter.brand === 'flovax' && sessionAfter.country === 'india'
-            ? 'Choose option'
-            : sessionAfter.state === 'country_select'
-              ? 'Select'
-              : 'विकल्प चुनें';
+          const listButton = listButtonLabel(routeResult.updatedSession);
           payload = buildInteractiveListPayload(phone, routeResult.replyText, routeResult.options, listButton);
         } else {
           payload = buildTextPayload(phone, routeResult.replyText);

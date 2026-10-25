@@ -3,6 +3,7 @@ export interface Contact {
   name: string;
   brand?: 'claren' | 'flovax' | string;
   country?: string;
+  language?: string;
   state: string;
   lead_status: 'IN_PROGRESS' | 'HANDOFF' | 'QUALIFIED' | 'CLOSED';
   bot_active: number; // 1 = Bot active, 0 = Human in control

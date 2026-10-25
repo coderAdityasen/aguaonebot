@@ -1,16 +1,38 @@
 import { ContactSession } from '../memory/session-cache';
 import {
-  BRAND_CHOOSER,
-  FLOVAX_COUNTRY,
-  FLOVAX_COUNTRY_RETRY,
+  LANGUAGE_CHOOSER,
+  LANGUAGE_RETRY,
+  WELCOME_PREFIX,
+  COUNTRY_CHOOSER,
+  COUNTRY_RETRY,
+  brandChooserForCountry,
+  BRAND_RETRY_NEPAL_OPENING,
+  BRAND_RETRY_OTHER_OPENING,
+  CLAREN_CITY_TEXT_EN,
+  CLAREN_CITY_TEXT_NE,
+  CLAREN_EN_QUESTIONS,
+  CLAREN_NE_QUESTIONS,
+  CLAREN_THANK_YOU_EN,
+  CLAREN_THANK_YOU_NE,
+  CLAREN_RETRY_EN,
+  CLAREN_RETRY_NE,
   FLOVAX_QUESTIONS,
   FLOVAX_ORDER,
   FLOVAX_THANK_YOU,
   FLOVAX_RETRY_PREFIX,
   FLOVAX_INDIA_QUESTIONS,
   FLOVAX_INDIA_ORDER,
+  flovaxQuestionsForCountry,
   FLOVAX_INDIA_THANK_YOU,
   FLOVAX_INDIA_RETRY_PREFIX,
+  FLOVAX_NEPAL_EN_QUESTIONS,
+  FLOVAX_NEPAL_EN_ORDER,
+  FLOVAX_NEPAL_EN_THANK_YOU,
+  FLOVAX_NEPAL_EN_RETRY_PREFIX,
+  FLOVAX_OTHER_NE_QUESTIONS,
+  FLOVAX_OTHER_NE_ORDER,
+  FLOVAX_OTHER_NE_THANK_YOU,
+  FLOVAX_OTHER_NE_RETRY_PREFIX,
   CLAREN_QUESTIONS,
   CLAREN_ORDER,
   CLAREN_THANK_YOU,
@@ -29,6 +51,16 @@ export interface RouteResult {
   updatedSession: ContactSession;
 }
 
+interface Track {
+  questions: Record<string, QuestionStep>;
+  order: string[];
+  thankYou: string;
+  retryPrefix: string;
+  terminal: string;
+  flovax: boolean;
+  english: boolean;
+}
+
 function ask(action: string, step: QuestionStep, updated: ContactSession): RouteResult {
   const isText = step.type === 'text' || step.options.length === 0;
   return {
@@ -41,7 +73,13 @@ function ask(action: string, step: QuestionStep, updated: ContactSession): Route
   };
 }
 
+function withWelcome(step: QuestionStep): QuestionStep {
+  return { ...step, text: WELCOME_PREFIX + step.text };
+}
+
 function clearAnswers(updated: ContactSession) {
+  updated.language = '';
+  updated.brand = '';
   updated.country = '';
   updated.city = '';
   updated.category = '';
@@ -59,35 +97,51 @@ function clearAnswers(updated: ContactSession) {
   updated.bot_active = 1;
 }
 
-function startCountry(updated: ContactSession, action: string): RouteResult {
-  updated.brand = 'flovax';
-  updated.country = '';
-  updated.state = 'country_select';
-  return ask(action, FLOVAX_COUNTRY, updated);
+export function listButtonLabel(session: { language?: string; state?: string }): string {
+  if (session.state === 'country_select') return 'Country';
+  if (session.state === 'language_select') return 'Language';
+  if (session.state === 'brand_select') return session.language === 'ne' ? 'ब्रान्ड' : 'Brand';
+  if (session.state === 'region_select') return session.language === 'en' ? 'Choose' : 'छान्नुहोस्';
+  return session.language === 'en' ? 'Choose option' : 'विकल्प छान्नुहोस्';
 }
 
-function startFlovaxNepal(updated: ContactSession, action: string): RouteResult {
-  updated.brand = 'flovax';
-  updated.country = 'nepal';
-  updated.state = 'city';
-  return ask(action, FLOVAX_QUESTIONS.city, updated);
+function detectLanguage(lower: string, selOpt: string, selTitle: string, allowNumber: boolean): 'ne' | 'en' | null {
+  if (selOpt === 'lang_ne') return 'ne';
+  if (selOpt === 'lang_en') return 'en';
+  const title = selTitle.toLowerCase();
+  const nepali = lower.includes('nepali')
+    || lower.includes('नेपाली')
+    || /(^|[^a-z])nepal([^a-z]|$)/.test(lower)
+    || lower.includes('नेपाल')
+    || title.includes('नेपाली')
+    || title.includes('nepali')
+    || (allowNumber && lower === '1');
+  const english = lower.includes('english')
+    || lower.includes('अंग्रेजी')
+    || title === 'english'
+    || title.includes('english')
+    || (allowNumber && lower === '2');
+  if (nepali === english) return null;
+  return nepali ? 'ne' : 'en';
 }
 
-function startFlovaxIndia(updated: ContactSession, action: string): RouteResult {
-  updated.brand = 'flovax';
-  updated.country = 'india';
-  updated.state = 'city';
-  return ask(action, FLOVAX_INDIA_QUESTIONS.city, updated);
+function mentionsClaren(lower: string, selOpt: string, selTitle: string): boolean {
+  const title = selTitle.toLowerCase();
+  return lower.includes('claren')
+    || lower.includes('aguaone')
+    || selOpt === 'brand_claren'
+    || selOpt === 'brand_aguaone'
+    || title.includes('claren')
+    || title.includes('aguaone');
 }
 
-function startClaren(updated: ContactSession, action: string): RouteResult {
-  updated.brand = 'claren';
-  updated.country = '';
-  updated.state = 'city';
-  return ask(action, CLAREN_QUESTIONS.city, updated);
-}
-
-function detectMentions(lower: string, selOpt: string, selTitle: string, state: string) {
+function detectBrand(
+  lower: string,
+  selOpt: string,
+  selTitle: string,
+  state: string,
+  country: string
+): 'flovax' | 'claren' | null {
   const title = selTitle.toLowerCase();
   const flovax = lower.includes('flovax')
     || selOpt === 'brand_flovax'
@@ -99,84 +153,285 @@ function detectMentions(lower: string, selOpt: string, selTitle: string, state: 
     || selOpt === 'brand_aguaone'
     || title.includes('claren')
     || title.includes('aguaone')
-    || (state === 'brand_select' && lower === '2');
-  const india = selOpt === 'country_india'
-    || lower.includes('india')
-    || lower.includes('भारत')
-    || title.includes('india')
-    || title.includes('भारत');
-  const nepal = selOpt === 'country_nepal'
-    || lower.includes('nepal')
-    || lower.includes('नेपाल')
-    || title.includes('nepal')
-    || title.includes('नेपाल');
-  return { flovax, claren, india, nepal };
+    || (state === 'brand_select' && country !== 'nepal' && lower === '2');
+  if (flovax === claren) return null;
+  return flovax ? 'flovax' : 'claren';
 }
 
-// "India" starts CLAREN only when FLOVAX was not chosen.
-// After FLOVAX, India and Nepal only pick the country.
-function beginFromIntent(
-  updated: ContactSession,
-  mentions: { flovax: boolean; claren: boolean; india: boolean; nepal: boolean },
-  wasFlovax: boolean,
-  wasClaren: boolean,
-  prefix: 'START' | 'RESTART'
-): RouteResult {
-  const { flovax, claren, india, nepal } = mentions;
-
-  if (claren && !flovax) {
-    return startClaren(updated, `${prefix}_CLAREN`);
-  }
-  if (flovax && india && !claren) {
-    return startFlovaxIndia(updated, `${prefix}_FLOVAX_INDIA`);
-  }
-  if ((flovax && nepal && !claren) || (!flovax && !claren && !wasFlovax && nepal && !india)) {
-    return startFlovaxNepal(updated, `${prefix}_FLOVAX_NEPAL`);
-  }
-  if (flovax && !claren) {
-    return startCountry(updated, `${prefix}_FLOVAX_COUNTRY`);
-  }
-  if (wasFlovax && india && !claren) {
-    return startFlovaxIndia(updated, `${prefix}_FLOVAX_INDIA`);
-  }
-  if (wasFlovax && nepal && !claren) {
-    return startFlovaxNepal(updated, `${prefix}_FLOVAX_NEPAL`);
-  }
-  if (wasFlovax) {
-    return startCountry(updated, `${prefix}_FLOVAX_COUNTRY`);
-  }
-  if (india && !nepal) {
-    return startClaren(updated, `${prefix}_CLAREN`);
-  }
-  if (nepal && !india) {
-    return startFlovaxNepal(updated, `${prefix}_FLOVAX_NEPAL`);
-  }
-  if (wasClaren) {
-    return startClaren(updated, `${prefix}_CLAREN`);
-  }
-
-  updated.brand = '';
-  updated.country = '';
-  updated.state = 'brand_select';
-  return ask(`${prefix}_BRAND_CHOOSER`, BRAND_CHOOSER, updated);
-}
-
-function matchCountry(lower: string, selOpt: string, selTitle: string): 'india' | 'nepal' | null {
+function detectRegion(lower: string, selOpt: string, selTitle: string): 'nepal' | 'other' | null {
+  if (selOpt === 'region_nepal') return 'nepal';
+  if (selOpt === 'region_other') return 'other';
   const title = selTitle.toLowerCase();
-  const india = selOpt === 'country_india'
-    || lower === '1'
-    || lower.includes('india')
-    || lower.includes('भारत')
-    || title.includes('india')
-    || title.includes('भारत');
-  const nepal = selOpt === 'country_nepal'
-    || lower === '2'
-    || lower.includes('nepal')
+  const nepal = lower === '1'
+    || /(^|[^a-z])nepal([^a-z]|$)/.test(lower)
     || lower.includes('नेपाल')
-    || title.includes('nepal')
+    || title === 'nepal'
     || title.includes('नेपाल');
-  if (india === nepal) return null;
-  return india ? 'india' : 'nepal';
+  const other = lower === '2'
+    || lower.includes('other')
+    || lower.includes('अन्य')
+    || title.includes('other')
+    || title.includes('अन्य');
+  if (nepal === other) return null;
+  return nepal ? 'nepal' : 'other';
+}
+
+function matchClarenCountry(lower: string, selOpt: string, selTitle: string, step: QuestionStep): string | null {
+  if (selOpt) {
+    const byId = step.options.find(option => option.id === selOpt);
+    if (byId) return byId.id.replace(/^country_/, '');
+  }
+
+  const candidate = (selTitle || lower).toLowerCase().trim();
+  const number = candidate.match(/^(\d+)$/);
+  if (number) {
+    const index = parseInt(number[1], 10) - 1;
+    if (step.options[index]) return step.options[index].id.replace(/^country_/, '');
+    return null;
+  }
+
+  const aliases: Record<string, string[]> = {
+    india: ['india', 'indian', 'भारत'],
+    nepal: ['nepal', 'नेपाल'],
+    bangladesh: ['bangladesh', 'bangladeshi', 'बांग्लादेश', 'बंगलादेश'],
+    bhutan: ['bhutan', 'भूटान'],
+    sri_lanka: ['sri lanka', 'srilanka', 'sri-lanka', 'shri lanka', 'shrilanka', 'श्रीलंका', 'श्रीलङ्का'],
+    south_africa: ['south africa', 'southafrica', 'south-africa']
+  };
+
+  const hits = step.options.filter(option => {
+    const key = option.id.replace(/^country_/, '');
+    const words = aliases[key] || [];
+    return words.some(word => candidate.includes(word)) || candidate === option.title.toLowerCase();
+  });
+  if (hits.length !== 1) return null;
+  return hits[0].id.replace(/^country_/, '');
+}
+
+function startFlovax(updated: ContactSession, action: string, greet: boolean): RouteResult {
+  updated.brand = 'flovax';
+  updated.state = 'city';
+  const step = getTrack(updated).questions.city;
+  return ask(action, greet ? withWelcome(step) : step, updated);
+}
+
+function askCountry(updated: ContactSession, retry: boolean): RouteResult {
+  updated.state = 'country_select';
+  const step = COUNTRY_CHOOSER;
+  const text = retry
+    ? COUNTRY_RETRY + 'कृपया आफ्नो देश छान्नुहोस्।\nPlease choose your country:'
+    : step.text;
+  return ask(retry ? 'RETRY_COUNTRY' : 'START_COUNTRY', { ...step, text }, updated);
+}
+
+function askBrand(updated: ContactSession, retry: boolean): RouteResult {
+  updated.brand = '';
+  updated.state = 'brand_select';
+  const step = brandChooserForCountry(updated.country);
+  const retryPrefix = retry
+    ? (updated.country === 'nepal' ? BRAND_RETRY_NEPAL_OPENING : BRAND_RETRY_OTHER_OPENING)
+    : '';
+  return ask(retry ? 'RETRY_BRAND' : 'START_BRAND', { ...step, text: retryPrefix + step.text }, updated);
+}
+
+function askLanguage(updated: ContactSession, retry: boolean): RouteResult {
+  updated.state = 'language_select';
+  const step = LANGUAGE_CHOOSER;
+  return ask(retry ? 'RETRY_LANGUAGE' : 'START_LANGUAGE', {
+    ...step,
+    text: (retry ? LANGUAGE_RETRY : '') + step.text
+  }, updated);
+}
+
+function startForm(updated: ContactSession): RouteResult {
+  if (updated.brand === 'aguaone') updated.brand = 'claren';
+  if (updated.brand === 'flovax') return startFlovax(updated, 'START_FLOVAX', false);
+  if (updated.brand === 'claren') {
+    updated.state = 'city';
+    return ask('START_CLAREN', getTrack(updated).questions.city, updated);
+  }
+  return askBrand(updated, false);
+}
+
+function afterCountryChosen(updated: ContactSession): RouteResult {
+  if (updated.country === 'nepal') {
+    updated.brand = 'flovax';
+    if (updated.language === 'en' || updated.language === 'ne') return startForm(updated);
+    return askLanguage(updated, false);
+  }
+  if (updated.brand === 'claren' || updated.brand === 'aguaone') {
+    updated.brand = 'claren';
+    updated.language = 'en';
+    return startForm(updated);
+  }
+  if (updated.brand === 'flovax') {
+    if (updated.language === 'en' || updated.language === 'ne') return startForm(updated);
+    return askLanguage(updated, false);
+  }
+  return askBrand(updated, false);
+}
+
+function handleOpening(
+  updated: ContactSession,
+  lower: string,
+  selOpt: string,
+  selTitle: string,
+  previousState: string
+): RouteResult {
+  if (mentionsClaren(lower, selOpt, selTitle)) {
+    updated.brand = 'claren';
+    updated.language = 'en';
+    const namedCountry = matchClarenCountry(lower, selOpt, selTitle, COUNTRY_CHOOSER);
+    if (namedCountry) updated.country = namedCountry;
+    if (updated.country) return afterCountryChosen(updated);
+    return askCountry(updated, previousState === 'country_select');
+  }
+
+  if (previousState === 'language_select') {
+    const language = detectLanguage(lower, selOpt, selTitle, true);
+    if (!language) {
+      if (updated.country && (updated.brand || updated.country === 'nepal')) return askLanguage(updated, true);
+      return askCountry(updated, false);
+    }
+    updated.language = language;
+    if (updated.country === 'nepal') updated.brand = 'flovax';
+    if (updated.country && updated.brand) return startForm(updated);
+    if (updated.country) return askBrand(updated, false);
+    return askCountry(updated, false);
+  }
+
+  if (previousState === 'brand_select') {
+    if (!updated.country || updated.country === 'nepal') {
+      if (updated.country === 'nepal') {
+        updated.brand = 'flovax';
+        return askLanguage(updated, false);
+      }
+      return askCountry(updated, false);
+    }
+    const picked = detectBrand(lower, selOpt, selTitle, 'brand_select', updated.country);
+    if (!picked) return askBrand(updated, true);
+    updated.brand = picked;
+    if (picked === 'claren') {
+      updated.language = 'en';
+      return startForm(updated);
+    }
+    if (updated.language === 'en' || updated.language === 'ne') return startForm(updated);
+    return askLanguage(updated, false);
+  }
+
+  if (previousState === 'region_select') {
+    const region = detectRegion(lower, selOpt, selTitle);
+    if (region === 'nepal') {
+      updated.country = 'nepal';
+      return afterCountryChosen(updated);
+    }
+    updated.country = '';
+    return askCountry(updated, false);
+  }
+
+  const country = matchClarenCountry(lower, selOpt, selTitle, COUNTRY_CHOOSER);
+  if (country) {
+    updated.country = country;
+    return afterCountryChosen(updated);
+  }
+
+  return askCountry(updated, previousState === 'country_select');
+}
+
+function needsOpening(session: ContactSession): boolean {
+  const openingStates = ['new', '', 'language_select', 'region_select', 'brand_select', 'country_select'];
+  return openingStates.includes(session.state || 'new');
+}
+
+function getTrack(updated: ContactSession): Track {
+  if (updated.brand === 'aguaone') updated.brand = 'claren';
+
+  const english = updated.language === 'en';
+
+  if (updated.brand === 'flovax') {
+    const nepalForm = updated.country === 'nepal' || (!updated.country && !updated.language);
+    if (nepalForm && english) {
+      return {
+        questions: FLOVAX_NEPAL_EN_QUESTIONS,
+        order: FLOVAX_NEPAL_EN_ORDER,
+        thankYou: FLOVAX_NEPAL_EN_THANK_YOU,
+        retryPrefix: FLOVAX_NEPAL_EN_RETRY_PREFIX,
+        terminal: 'pan_registration',
+        flovax: true,
+        english: true
+      };
+    }
+    if (nepalForm) {
+      if (!updated.country) updated.country = 'nepal';
+      return {
+        questions: FLOVAX_QUESTIONS,
+        order: FLOVAX_ORDER,
+        thankYou: FLOVAX_THANK_YOU,
+        retryPrefix: FLOVAX_RETRY_PREFIX,
+        terminal: 'pan_registration',
+        flovax: true,
+        english: false
+      };
+    }
+    if (!english && updated.language === 'ne') {
+      return {
+        questions: flovaxQuestionsForCountry(FLOVAX_OTHER_NE_QUESTIONS, updated.country),
+        order: FLOVAX_OTHER_NE_ORDER,
+        thankYou: FLOVAX_OTHER_NE_THANK_YOU,
+        retryPrefix: FLOVAX_OTHER_NE_RETRY_PREFIX,
+        terminal: 'gst_status',
+        flovax: true,
+        english: false
+      };
+    }
+    return {
+      questions: flovaxQuestionsForCountry(FLOVAX_INDIA_QUESTIONS, updated.country),
+      order: FLOVAX_INDIA_ORDER,
+      thankYou: FLOVAX_INDIA_THANK_YOU,
+      retryPrefix: FLOVAX_INDIA_RETRY_PREFIX,
+      terminal: 'gst_status',
+      flovax: true,
+      english: true
+    };
+  }
+
+  if (updated.language === 'ne') {
+    const questions = { ...CLAREN_NE_QUESTIONS };
+    if (updated.country !== 'india') questions.city = CLAREN_CITY_TEXT_NE;
+    return {
+      questions,
+      order: CLAREN_ORDER,
+      thankYou: CLAREN_THANK_YOU_NE,
+      retryPrefix: CLAREN_RETRY_NE,
+      terminal: 'gst_status',
+      flovax: false,
+      english: false
+    };
+  }
+
+  if (updated.language === 'en') {
+    const questions = { ...CLAREN_EN_QUESTIONS };
+    if (updated.country !== 'india') questions.city = CLAREN_CITY_TEXT_EN;
+    return {
+      questions,
+      order: CLAREN_ORDER,
+      thankYou: CLAREN_THANK_YOU_EN,
+      retryPrefix: CLAREN_RETRY_EN,
+      terminal: 'gst_status',
+      flovax: false,
+      english: true
+    };
+  }
+
+  return {
+    questions: CLAREN_QUESTIONS,
+    order: CLAREN_ORDER,
+    thankYou: CLAREN_THANK_YOU,
+    retryPrefix: CLAREN_RETRY_PREFIX,
+    terminal: 'gst_status',
+    flovax: false,
+    english: false
+  };
 }
 
 export function routeConversation(
@@ -192,18 +447,13 @@ export function routeConversation(
 
   const updated: ContactSession = { ...session };
   updated.last_message = rawText || selTitle;
+  const previousState = updated.state || 'new';
 
-  const mentions = detectMentions(lower, selOpt, selTitle, updated.state);
-  const wasFlovax = updated.brand === 'flovax';
-  const wasClaren = updated.brand === 'claren' || updated.brand === 'aguaone';
-
-  // 1. Restart is checked first so the customer can restart at any point.
   if (RESTART_WORDS.has(lower) || lower === 'restart' || lower.startsWith('restart ')) {
     clearAnswers(updated);
-    return beginFromIntent(updated, mentions, wasFlovax, wasClaren, 'RESTART');
+    return handleOpening(updated, lower, selOpt, selTitle, 'new');
   }
 
-  // 2. Terminal check: qualified, handed off, or bot paused -> stay silent.
   if (
     updated.state === 'handoff' ||
     updated.lead_status === 'HANDOFF' ||
@@ -223,53 +473,23 @@ export function routeConversation(
     };
   }
 
-  // 3. No brand yet, or still on the brand list.
-  if (!updated.brand || updated.state === 'brand_select') {
-    return beginFromIntent(updated, mentions, false, false, 'START');
+  if (needsOpening(updated)) {
+    return handleOpening(updated, lower, selOpt, selTitle, previousState);
   }
 
-  if (updated.brand === 'aguaone') {
-    updated.brand = 'claren';
-  }
-
-  // 4. FLOVAX country step. "India" here stays on FLOVAX.
-  if (updated.brand === 'flovax' && updated.state === 'country_select') {
-    const picked = matchCountry(lower, selOpt, selTitle);
-    if (picked === 'india') return startFlovaxIndia(updated, 'START_FLOVAX_INDIA');
-    if (picked === 'nepal') return startFlovaxNepal(updated, 'START_FLOVAX_NEPAL');
-    return ask('RETRY_FLOVAX_COUNTRY', {
-      ...FLOVAX_COUNTRY,
-      text: FLOVAX_COUNTRY_RETRY + FLOVAX_COUNTRY.text
-    }, updated);
-  }
-
-  // Chats that started before the country step stay on the Nepali form.
-  if (updated.brand === 'flovax' && updated.country !== 'india' && updated.country !== 'nepal') {
-    if (FLOVAX_ORDER.includes(updated.state)) {
-      updated.country = 'nepal';
-    } else {
-      return startCountry(updated, 'PROMPT_FLOVAX_COUNTRY');
-    }
-  }
-
-  // 5. Active survey by brand and, for FLOVAX, by country.
-  const flovaxIndia = updated.brand === 'flovax' && updated.country === 'india';
-  const isFlovax = updated.brand === 'flovax';
-  const questions = flovaxIndia ? FLOVAX_INDIA_QUESTIONS : isFlovax ? FLOVAX_QUESTIONS : CLAREN_QUESTIONS;
-  const order = flovaxIndia ? FLOVAX_INDIA_ORDER : isFlovax ? FLOVAX_ORDER : CLAREN_ORDER;
-  const thankYouText = flovaxIndia ? FLOVAX_INDIA_THANK_YOU : isFlovax ? FLOVAX_THANK_YOU : CLAREN_THANK_YOU;
-  const retryPrefix = flovaxIndia ? FLOVAX_INDIA_RETRY_PREFIX : isFlovax ? FLOVAX_RETRY_PREFIX : CLAREN_RETRY_PREFIX;
-  const terminalQuestion = flovaxIndia ? 'gst_status' : isFlovax ? 'pan_registration' : 'gst_status';
-
+  const track = getTrack(updated);
   let currentState = updated.state || 'new';
-  if (currentState === 'new' || !order.includes(currentState)) {
+  if (currentState === 'new' || !track.order.includes(currentState)) {
     updated.state = 'city';
-    return ask('START_' + updated.brand.toUpperCase(), questions.city, updated);
+    return ask('START_' + updated.brand.toUpperCase(), track.questions.city, updated);
   }
 
-  const q = questions[currentState];
+  const q = track.questions[currentState];
+  if (!q) {
+    updated.state = 'city';
+    return ask('RECOVER_QUESTION', track.questions.city, updated);
+  }
 
-  // Case A: free-text question (India city, or firm name on every track).
   if (q.type === 'text') {
     const enteredText = (rawText || selTitle).trim();
     const cityIsNumeric = currentState === 'city' && /^\d+$/.test(enteredText);
@@ -286,7 +506,7 @@ export function routeConversation(
 
     (updated as any)[currentState] = enteredText;
 
-    if (currentState === terminalQuestion) {
+    if (currentState === track.terminal) {
       updated.qualified = 1;
       updated.lead_status = 'HANDOFF';
       updated.state = 'handoff';
@@ -294,19 +514,16 @@ export function routeConversation(
       return {
         shouldReply: true,
         replyType: 'text',
-        replyText: thankYouText,
+        replyText: track.thankYou,
         options: [],
         action: 'QUALIFIED_HANDOFF',
         updatedSession: updated
       };
     }
 
-    const nextKey = q.next;
-    updated.state = nextKey;
-    return ask('ANSWER_ACCEPTED_TEXT', questions[nextKey], updated);
+    return askKnown('ANSWER_ACCEPTED_TEXT', track, updated, q.next);
   }
 
-  // Case B: interactive list question.
   let matched: QuestionOption | null = null;
 
   if (selOpt) {
@@ -348,7 +565,6 @@ export function routeConversation(
     }
   }
 
-  // Nepal and CLAREN city lists also accept a typed city name.
   if (!matched && currentState === 'city') {
     const rawCity = (rawText || selTitle).trim();
     if (rawCity.length >= 2 && !/^\d+$/.test(rawCity) && !RESTART_WORDS.has(rawCity.toLowerCase())) {
@@ -363,7 +579,7 @@ export function routeConversation(
     return {
       shouldReply: true,
       replyType: 'list',
-      replyText: retryPrefix + q.text,
+      replyText: track.retryPrefix + q.text,
       options: [...q.options],
       action: 'INVALID_RETRY',
       updatedSession: updated
@@ -375,7 +591,7 @@ export function routeConversation(
     updated.city = matched.title;
   }
 
-  if (currentState === terminalQuestion) {
+  if (currentState === track.terminal) {
     updated.qualified = 1;
     updated.lead_status = 'HANDOFF';
     updated.state = 'handoff';
@@ -383,7 +599,7 @@ export function routeConversation(
     return {
       shouldReply: true,
       replyType: 'text',
-      replyText: thankYouText,
+      replyText: track.thankYou,
       options: [],
       action: 'QUALIFIED_HANDOFF',
       updatedSession: updated
@@ -392,17 +608,34 @@ export function routeConversation(
 
   let nextKey = q.next;
 
-  // Import experience is asked only when the firm has an import license.
-  // Otherwise skip it and ask the last question: GST in India, registration in Nepal.
-  if (isFlovax && currentState === 'import_license') {
+  if (track.flovax && currentState === 'import_license') {
     if (matched.id === 'license_yes') {
       nextKey = 'import_experience';
     } else {
-      nextKey = flovaxIndia ? 'gst_status' : 'pan_registration';
+      nextKey = track.terminal;
       updated.import_experience = 'N/A — No Import License';
     }
   }
 
+  return askKnown('ANSWER_ACCEPTED', track, updated, nextKey);
+}
+
+function askKnown(action: string, track: Track, updated: ContactSession, nextKey: string): RouteResult {
+  const step = track.questions[nextKey];
+  if (!step) {
+    updated.qualified = 1;
+    updated.lead_status = 'HANDOFF';
+    updated.state = 'handoff';
+    updated.bot_active = 0;
+    return {
+      shouldReply: true,
+      replyType: 'text',
+      replyText: track.thankYou,
+      options: [],
+      action: 'QUALIFIED_HANDOFF',
+      updatedSession: updated
+    };
+  }
   updated.state = nextKey;
-  return ask('ANSWER_ACCEPTED', questions[nextKey], updated);
+  return ask(action, step, updated);
 }
