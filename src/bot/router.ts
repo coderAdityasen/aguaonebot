@@ -1,6 +1,7 @@
 import { ContactSession } from '../memory/session-cache';
 import {
   LANGUAGE_CHOOSER,
+  NEPAL_LANGUAGE_CHOOSER,
   LANGUAGE_RETRY,
   WELCOME_PREFIX,
   COUNTRY_CHOOSER,
@@ -236,7 +237,8 @@ function askBrand(updated: ContactSession, retry: boolean): RouteResult {
 
 function askLanguage(updated: ContactSession, retry: boolean): RouteResult {
   updated.state = 'language_select';
-  const step = LANGUAGE_CHOOSER;
+  const nepal = updated.country === 'nepal';
+  const step = nepal ? NEPAL_LANGUAGE_CHOOSER : LANGUAGE_CHOOSER;
   return ask(retry ? 'RETRY_LANGUAGE' : 'START_LANGUAGE', {
     ...step,
     text: (retry ? LANGUAGE_RETRY : '') + step.text
@@ -256,7 +258,7 @@ function startForm(updated: ContactSession): RouteResult {
 function afterCountryChosen(updated: ContactSession): RouteResult {
   if (updated.country === 'nepal') {
     updated.brand = 'flovax';
-    if (updated.language === 'en' || updated.language === 'ne') return startForm(updated);
+    updated.language = '';
     return askLanguage(updated, false);
   }
   if (updated.brand === 'claren' || updated.brand === 'aguaone') {

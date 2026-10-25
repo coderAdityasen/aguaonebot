@@ -615,7 +615,7 @@ export const OPENING_COUNTRIES: QuestionOption[] = [
 
 export const COUNTRY_CHOOSER: QuestionStep = {
   type: 'list',
-  text: 'नमस्ते! 🙏\nCLAREN र FLOVAX मा स्वागत छ।\nकृपया आफ्नो देश छान्नुहोस्।\n\nWelcome to CLAREN & FLOVAX.\nPlease choose your country:',
+  text: 'नमस्ते! 🙏\nतपाईं कुन देशबाट हुनुहुन्छ?\n\nHi!\nWhich country are you from?',
   next: 'brand',
   options: OPENING_COUNTRIES
 };
@@ -624,29 +624,36 @@ export const COUNTRY_RETRY = 'कृपया तलको देशमध्य
 
 export function brandChooserForCountry(country: string): QuestionStep {
   const label = COUNTRY_LABELS[country] || country;
-  const nepal = country === 'nepal';
   return {
     type: 'list',
-    text: `धन्यवाद! 🙏\nतपाईंले ${label} छान्नुभयो।\nकृपया ब्रान्ड छान्नुहोस्:\n\nThank you!\nYou selected ${label}.\nPlease choose a brand:`,
+    text: `Thank you! 🙏\nYou selected ${label}.\nPlease choose a brand:`,
     next: 'language',
-    options: nepal
-      ? [{ id: 'brand_flovax', title: 'FLOVAX', description: 'Nepal Dealership' }]
-      : [
-          { id: 'brand_flovax', title: 'FLOVAX', description: 'Dealership' },
-          { id: 'brand_claren', title: 'CLAREN', description: 'Dealership' }
-        ]
+    options: [
+      { id: 'brand_flovax', title: 'FLOVAX' },
+      { id: 'brand_claren', title: 'CLAREN' }
+    ]
   };
 }
 
 export const BRAND_RETRY_NEPAL_OPENING = 'कृपया FLOVAX छान्नुहोस्।\nPlease choose FLOVAX. 🙏\n\n';
-export const BRAND_RETRY_OTHER_OPENING = 'कृपया FLOVAX वा CLAREN छान्नुहोस्।\nPlease choose FLOVAX or CLAREN. 🙏\n\n';
+export const BRAND_RETRY_OTHER_OPENING = 'Please choose FLOVAX or CLAREN. 🙏\n\n';
 
 export const LANGUAGE_CHOOSER: QuestionStep = {
   type: 'list',
-  text: 'धन्यवाद! 🙏\nकृपया आफ्नो भाषा छान्नुहोस्।\n\nThank you!\nPlease choose your language:',
+  text: 'Thank you! 🙏\nPlease choose your language:',
   next: 'city',
   options: [
-    { id: 'lang_ne', title: 'नेपाली', description: 'Nepali' },
+    { id: 'lang_ne', title: 'नेपाली' },
+    { id: 'lang_en', title: 'English' }
+  ]
+};
+
+export const NEPAL_LANGUAGE_CHOOSER: QuestionStep = {
+  type: 'list',
+  text: 'नमस्ते! 🙏\nतपाईंले Nepal छान्नुभयो।\nब्रान्ड FLOVAX हो।\nकृपया आफ्नो भाषा छान्नुहोस्।\n\nHi!\nYou selected Nepal.\nThe brand is FLOVAX.\nPlease choose your language:',
+  next: 'city',
+  options: [
+    { id: 'lang_ne', title: 'नेपाली' },
     { id: 'lang_en', title: 'English' }
   ]
 };
@@ -681,7 +688,7 @@ export const BRAND_CHOOSER_NE: QuestionStep = {
   text: 'धन्यवाद! 🙏\nतपाईंले नेपाली छान्नुभयो।\nकृपया ब्रान्ड छान्नुहोस्:',
   next: 'city',
   options: [
-    { id: 'brand_flovax', title: 'FLOVAX', description: 'नेपाल डिलरशिप' }
+    { id: 'brand_flovax', title: 'FLOVAX' }
   ]
 };
 
@@ -692,7 +699,7 @@ export const BRAND_NEPAL_EN: QuestionStep = {
   text: 'Thank you! 🙏\nThis is the Nepal flow.\nPlease choose a brand:',
   next: 'city',
   options: [
-    { id: 'brand_flovax', title: 'FLOVAX', description: 'Nepal Dealership' }
+    { id: 'brand_flovax', title: 'FLOVAX' }
   ]
 };
 
