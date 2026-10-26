@@ -270,8 +270,8 @@ export const FLOVAX_INDIA_ORDER = [
 export const FLOVAX_INDIA_THANK_YOU = 'Thank you! 🙏\nWe have received your details.\nOur FLOVAX team will contact you shortly.';
 export const FLOVAX_INDIA_RETRY_PREFIX = 'Please choose one of the options below 🙏\n\n';
 
-// India already names the country, so this option is distribution only,
-// and the import-license question is skipped.
+// India already names the country, so the opportunity is distribution only
+// and both import questions are skipped. The firm name goes straight to GST.
 export function flovaxQuestionsForCountry(
   questions: Record<string, QuestionStep>,
   country: string
@@ -279,6 +279,7 @@ export function flovaxQuestionsForCountry(
   if (country !== 'india') return questions;
   const opportunity = questions.opportunity;
   const firmName = questions.firm_name;
+  const skipsImport = firmName?.next === 'import_license' || firmName?.next === 'import_experience';
   return {
     ...questions,
     ...(opportunity ? {
@@ -291,8 +292,8 @@ export function flovaxQuestionsForCountry(
         )
       }
     } : {}),
-    ...(firmName && firmName.next === 'import_license'
-      ? { firm_name: { ...firmName, next: 'import_experience' } }
+    ...(firmName && skipsImport
+      ? { firm_name: { ...firmName, next: 'gst_status' } }
       : {})
   };
 }
