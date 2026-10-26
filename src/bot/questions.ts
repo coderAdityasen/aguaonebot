@@ -616,7 +616,7 @@ export const OPENING_COUNTRIES: QuestionOption[] = [
 
 export const COUNTRY_CHOOSER: QuestionStep = {
   type: 'list',
-  text: 'hii, Which country are you from?',
+  text: 'Welcome! Please select the country you are from:',
   next: 'brand',
   options: OPENING_COUNTRIES
 };
