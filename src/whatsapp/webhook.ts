@@ -84,6 +84,12 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
+    // Ignore Emoji reactions completely to prevent infinite reply loop and Meta rate limits
+    if (message.type === 'reaction') {
+      console.log(`ℹ️  [REACTION IGNORED] Emoji reaction from +${phone} - no reply sent.`);
+      return;
+    }
+
     // Extract message content
     let incomingText = '';
     let selectedOption = '';
@@ -188,6 +194,22 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           console.warn('[Webhook] Failed to download inbound audio from Meta:', e);
         }
       }
+    } else if (message.type === 'sticker') {
+      incomingText = '🏷️ [Sticker]';
+    } else if (message.type === 'location') {
+      const loc = message.location;
+      const locParts = [loc?.name, loc?.address].filter(Boolean);
+      const coordStr = loc?.latitude && loc?.longitude ? `https://maps.google.com/?q=${loc.latitude},${loc.longitude}` : '';
+      incomingText = locParts.length > 0 
+        ? `📍 [Location: ${locParts.join(', ')}] ${coordStr}`.trim()
+        : coordStr ? `📍 [Location: ${coordStr}]` : '📍 [Location Shared]';
+    } else if (message.type === 'contacts') {
+      const shared = message.contacts?.[0];
+      const sharedName = shared?.name?.formatted_name || 'Contact';
+      const sharedPhone = shared?.phones?.[0]?.phone || '';
+      incomingText = sharedPhone ? `👤 [Contact: ${sharedName} (${sharedPhone})]` : `👤 [Contact: ${sharedName}]`;
+    } else {
+      incomingText = `📦 [${message.type || 'Message'}]`;
     }
 
     const customerName = changes.contacts?.[0]?.profile?.name || 'Customer';
@@ -262,6 +284,12 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
           status: 'delivered',
           timestamp: new Date().toISOString()
         });
+
+        if (!incomingText && !selectedOption && !selectedTitle && !mediaUrl) {
+          console.log(`⚠️  [EMPTY MESSAGE SKIPPED] No content to route for +${phone}`);
+          console.log(`======================================================\n`);
+          return;
+        }
 
         // Run through CLAREN Conversation State Machine
         const routeResult = routeConversation(session, incomingText, selectedOption, selectedTitle);

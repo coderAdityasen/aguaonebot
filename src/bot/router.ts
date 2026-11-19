@@ -491,7 +491,9 @@ export function routeConversation(
   if (q.type === 'text') {
     const enteredText = (rawText || selTitle).trim();
     const cityIsNumeric = currentState === 'city' && /^\d+$/.test(enteredText);
-    if (enteredText.length < 2 || cityIsNumeric) {
+    const isMediaPlaceholder = /^(?:📷|🎥|🎵|📄|🏷️|📍|👤|📦)\s*\[?/u.test(enteredText);
+
+    if (enteredText.length < 2 || cityIsNumeric || isMediaPlaceholder) {
       return {
         shouldReply: true,
         replyType: 'text',

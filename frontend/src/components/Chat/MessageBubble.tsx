@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Message } from '../../types';
-import { Bot, User, Check, CheckCheck, ExternalLink, X, FileText, Download, Clock, AlertCircle } from 'lucide-react';
+import { Bot, User, Check, CheckCheck, ExternalLink, X, FileText, Download, Clock, AlertCircle, MapPin, Copy } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -44,6 +44,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   }, [isDocument, message.content, message.media_url]);
 
   const mediaSrc = message.media_url || (isImage || isVideo || isDocument ? message.content : '');
+
+  const [copiedPhone, setCopiedPhone] = useState(false);
+
+  const isSticker = (message.content || '').trim() === '🏷️ [Sticker]';
+  const isLocation = Boolean(message.content && message.content.includes('📍 [Location:'));
+  const isContact = Boolean(message.content && message.content.startsWith('👤 [Contact:'));
+
+  const locationData = useMemo(() => {
+    if (!isLocation || !message.content) return null;
+    const mapUrlMatch = message.content.match(/https:\/\/(?:maps\.google\.com|www\.google\.com\/maps)\/\?q=[0-9.,-]+/);
+    const mapUrl = mapUrlMatch ? mapUrlMatch[0] : '';
+    let locationText = message.content
+      .replace(/https:\/\/(?:maps\.google\.com|www\.google\.com\/maps)\/\?q=[0-9.,-]+/, '')
+      .replace('📍 [Location:', '')
+      .replace(']', '')
+      .trim();
+    return { locationText: locationText || 'Shared Location', mapUrl };
+  }, [isLocation, message.content]);
+
+  const contactData = useMemo(() => {
+    if (!isContact || !message.content) return null;
+    const match = message.content.match(/👤 \[Contact:\s*([^(]+?)(?:\s*\(([^)]+)\))?\]/);
+    return {
+      name: match?.[1]?.trim() || 'Contact',
+      phone: match?.[2]?.trim() || ''
+    };
+  }, [isContact, message.content]);
 
   const formatTime = (isoString?: string) => {
     if (!isoString) return '';
@@ -135,10 +162,79 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </a>
           )}
 
-          {/* Message Body Content / Caption */}
+          {/* Fallback if Media Download Failed or Media Expired */}
+          {(isImage || isVideo || isDocument) && !mediaSrc && (
+            <div className="flex items-center space-x-2 p-2.5 my-1 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-600">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>
+                {isImage ? '📷 Image' : isVideo ? '🎥 Video' : '📄 Document'} (Media download unavailable or expired)
+              </span>
+            </div>
+          )}
+
+          {/* Message Body Content / Caption / Custom Rich Cards */}
           {message.caption ? (
             <div className="whitespace-pre-wrap leading-relaxed break-words text-[13.5px] mt-1">
               {message.caption}
+            </div>
+          ) : isLocation && locationData ? (
+            <div className="my-1.5 p-3 rounded-lg bg-rose-50 border border-rose-200">
+              <div className="flex items-start space-x-2.5">
+                <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-800">Customer Location</p>
+                  <p className="text-xs text-gray-600 mt-0.5 leading-snug break-words">
+                    {locationData.locationText}
+                  </p>
+                  {locationData.mapUrl && (
+                    <a
+                      href={locationData.mapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center space-x-1.5 text-xs font-semibold text-rose-700 hover:text-rose-900 bg-white px-2.5 py-1 rounded shadow-xs border border-rose-200 hover:border-rose-300 transition-colors"
+                    >
+                      <span>Open in Google Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : isContact && contactData ? (
+            <div className="my-1.5 p-3 rounded-lg bg-sky-50 border border-sky-200">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center shrink-0 font-bold text-sm">
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-900 truncate">{contactData.name}</p>
+                  {contactData.phone && (
+                    <p className="text-xs text-sky-800 font-mono mt-0.5">{contactData.phone}</p>
+                  )}
+                </div>
+              </div>
+              {contactData.phone && (
+                <div className="mt-2 pt-2 border-t border-sky-200/60 flex items-center justify-end">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(contactData.phone);
+                      setCopiedPhone(true);
+                      setTimeout(() => setCopiedPhone(false), 2000);
+                    }}
+                    className="text-[11px] font-medium text-sky-700 hover:text-sky-900 flex items-center space-x-1 bg-white px-2 py-0.5 rounded border border-sky-200 hover:border-sky-300 transition-colors cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{copiedPhone ? 'Copied!' : 'Copy Number'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : isSticker ? (
+            <div className="my-1 inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-medium">
+              <span>🏷️</span>
+              <span>WhatsApp Sticker</span>
             </div>
           ) : (!isImage && !isVideo && !isDocument && message.content) ? (
             <div className="whitespace-pre-wrap leading-relaxed break-words text-[13.5px]">

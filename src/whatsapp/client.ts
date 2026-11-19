@@ -8,7 +8,80 @@ export interface WhatsAppSendResult {
   error?: any;
 }
 
-export async function sendWhatsAppMessage(
+const MIN_GAP_MS = 6500; 
+const lastSendTime = new Map<string, number>();
+const sendQueues = new Map<string, Promise<WhatsAppSendResult>>();
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function enqueueWithRateLimit(
+  recipient: string,
+  task: () => Promise<WhatsAppSendResult>
+): Promise<WhatsAppSendResult> {
+  const previousTask = sendQueues.get(recipient) 
+    || Promise.resolve<WhatsAppSendResult>({ success: true });
+
+  const chained = previousTask
+    .catch(() => ({ success: false })) // ignore prev failures, keep queue alive
+    .then(async () => {
+      const last = lastSendTime.get(recipient) || 0;
+      const elapsed = Date.now() - last;
+      const waitMs = MIN_GAP_MS - elapsed;
+
+      if (waitMs > 0) {
+        console.log(`⏳ [RATE LIMITER] Delaying ${Math.ceil(waitMs / 1000)}s for +${recipient} (prev msg was ${Math.round(elapsed/1000)}s ago)`);
+        await sleep(waitMs);
+      }
+
+      try {
+        const result = await task();
+        return result;
+      } finally {
+        // Record completion timestamp so the full 6.5s gap is maintained between Meta API deliveries
+        lastSendTime.set(recipient, Date.now());
+
+        // Memory cleanup: keep at most 5,000 active timestamps in RAM
+        if (lastSendTime.size > 5000) {
+          const firstKey = lastSendTime.keys().next().value;
+          if (firstKey) lastSendTime.delete(firstKey);
+        }
+      }
+    });
+
+  sendQueues.set(recipient, chained);
+
+  chained.finally(() => {
+    if (sendQueues.get(recipient) === chained) {
+      sendQueues.delete(recipient);
+    }
+  });
+
+  return chained;
+}
+
+// Public API: rate-limited wrapper (called by webhook & other services)
+export function sendWhatsAppMessage(
+  phoneNumberId: string,
+  payload: any
+): Promise<WhatsAppSendResult> {
+  const recipient = payload?.to;
+
+  // Safety: if no recipient (shouldn't happen), send directly without queue
+  if (!recipient) {
+    console.warn('[WhatsAppClient] No recipient in payload, sending without rate limit');
+    return doSendWhatsAppMessage(phoneNumberId, payload);
+  }
+
+  // Queue per recipient with 6.5s gap
+  return enqueueWithRateLimit(recipient, () =>
+    doSendWhatsAppMessage(phoneNumberId, payload)
+  );
+}
+
+// Internal: actual Meta API call (only called from queue)
+async function doSendWhatsAppMessage(
   phoneNumberId: string,
   payload: any
 ): Promise<WhatsAppSendResult> {
@@ -39,6 +112,13 @@ export async function sendWhatsAppMessage(
     };
   } catch (error: any) {
     const errDetails = error.response?.data?.error || error.message;
+
+    // Extra safety: if Meta still rate-limits, force cooldown for next msg
+    if (errDetails?.code === 131056 && payload?.to) {
+      console.warn(`🚨 [RATE LIMIT HIT] Meta blocked msg to +${payload.to}. Forcing extra 5s cooldown.`);
+      lastSendTime.set(payload.to, Date.now() + 5000);
+    }
+
     console.error('[WhatsAppClient] Failed to send message via Meta Graph API:', errDetails);
     return {
       success: false,

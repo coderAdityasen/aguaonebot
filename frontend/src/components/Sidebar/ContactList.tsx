@@ -325,6 +325,13 @@ export const ContactList: React.FC<ContactListProps> = ({
                       </span>
                     ) : null}
 
+                    {/* Needs Attention Alert Pill */}
+                    {isBotActive && (contact.last_message?.includes('[Sticker]') || contact.last_message?.includes('[Location')) && (
+                      <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        ⚠️ Needs Attention
+                      </span>
+                    )}
+
                     {contact.city && (
                       <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] bg-gray-100 text-gray-600">
                         📍 {contact.city}
