@@ -17,7 +17,14 @@ export const messageRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/contacts/:phone/messages
   fastify.get('/api/contacts/:phone/messages', async (req) => {
     const { phone } = req.params as { phone: string };
-    const messages = statements.getMessagesByPhone.all(phone);
+    const rawMessages = statements.getMessagesByPhone.all(phone) as any[];
+    const messages = rawMessages.map((m) => {
+      let ts = m.timestamp;
+      if (ts && typeof ts === 'string' && !ts.includes('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(ts)) {
+        ts = ts.replace(' ', 'T') + 'Z';
+      }
+      return { ...m, timestamp: ts };
+    });
     return { messages };
   });
 

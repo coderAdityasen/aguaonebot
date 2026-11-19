@@ -53,3 +53,9 @@ export function broadcastContactUpdate(data: any) {
     io.emit('contact:update', data);
   }
 }
+
+export function broadcastContactDelete(phone: string) {
+  if (io) {
+    io.emit('contact:delete', { phone });
+  }
+}

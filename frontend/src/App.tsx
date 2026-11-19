@@ -11,7 +11,7 @@ import { MetaSettingsModal } from './components/Modals/MetaSettingsModal';
 
 export const App: React.FC = () => {
   const { isAuthenticated, isLoading: isAuthLoading, logout } = useAuth();
-  const { isConnected, latestMessage, latestContactUpdate } = useSocket();
+  const { isConnected, latestMessage, latestContactUpdate, latestDeletedPhone } = useSocket();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
@@ -103,25 +103,22 @@ export const App: React.FC = () => {
       });
     }
 
-    // Refresh contact list or update latest snippet
+    // Refresh contact list or update latest snippet and move active chat to top
     setContacts(prev => {
-      const exists = prev.some(c => c.phone === latestMessage.phone);
-      if (!exists) {
+      const existing = prev.find(c => c.phone === latestMessage.phone);
+      if (!existing) {
         fetchContacts();
         return prev;
       }
-      return prev.map(c => {
-        if (c.phone === latestMessage.phone) {
-          const isCurrent = c.phone === selectedPhone;
-          return {
-            ...c,
-            last_message: latestMessage.content,
-            last_message_at: latestMessage.timestamp,
-            unread_count: isCurrent ? 0 : (c.unread_count || 0) + 1
-          };
-        }
-        return c;
-      });
+      const isCurrent = existing.phone === selectedPhone;
+      const updatedContact: Contact = {
+        ...existing,
+        last_message: latestMessage.content,
+        last_message_at: latestMessage.timestamp,
+        unread_count: isCurrent ? 0 : (existing.unread_count || 0) + 1
+      };
+      // WhatsApp behavior: Move active conversation to the top
+      return [updatedContact, ...prev.filter(c => c.phone !== latestMessage.phone)];
     });
   }, [latestMessage, selectedPhone, isAuthenticated, fetchContacts]);
 
@@ -130,24 +127,35 @@ export const App: React.FC = () => {
     if (!latestContactUpdate || !isAuthenticated) return;
 
     setContacts(prev => {
-      const exists = prev.some(c => c.phone === latestContactUpdate.phone);
-      if (!exists) {
-        const matchesFilter =
-          activeFilter === 'all' ||
-          (activeFilter === 'claren' && latestContactUpdate.brand?.toLowerCase() === 'claren') ||
-          (activeFilter === 'flovax' && latestContactUpdate.brand?.toLowerCase() === 'flovax') ||
-          (activeFilter === 'qualified' && latestContactUpdate.qualified === 1) ||
-          (activeFilter === 'handoff' && (latestContactUpdate.lead_status === 'HANDOFF' || latestContactUpdate.bot_active === 0)) ||
-          (activeFilter === 'bot_active' && latestContactUpdate.bot_active === 1 && latestContactUpdate.lead_status === 'IN_PROGRESS');
+      const existing = prev.find(c => c.phone === latestContactUpdate.phone);
+      const updatedContact: Contact = existing ? { ...existing, ...latestContactUpdate } : latestContactUpdate;
+      const remaining = prev.filter(c => c.phone !== latestContactUpdate.phone);
 
-        if (matchesFilter) {
-          return [latestContactUpdate, ...prev];
-        }
-        return prev;
+      const matchesFilter =
+        activeFilter === 'all' ||
+        (activeFilter === 'claren' && updatedContact.brand?.toLowerCase() === 'claren') ||
+        (activeFilter === 'flovax' && updatedContact.brand?.toLowerCase() === 'flovax') ||
+        (activeFilter === 'qualified' && updatedContact.qualified === 1) ||
+        (activeFilter === 'handoff' && (updatedContact.lead_status === 'HANDOFF' || updatedContact.bot_active === 0)) ||
+        (activeFilter === 'bot_active' && updatedContact.bot_active === 1 && updatedContact.lead_status === 'IN_PROGRESS');
+
+      if (!matchesFilter) {
+        return remaining;
       }
-      return prev.map(c => c.phone === latestContactUpdate.phone ? { ...c, ...latestContactUpdate } : c);
+      return [updatedContact, ...remaining];
     });
   }, [latestContactUpdate, isAuthenticated, activeFilter]);
+
+  // Real-time WebSocket: contact deletion handler
+  useEffect(() => {
+    if (!latestDeletedPhone || !isAuthenticated) return;
+    setContacts(prev => prev.filter(c => c.phone !== latestDeletedPhone));
+    if (selectedPhone === latestDeletedPhone) {
+      setSelectedPhone(null);
+      setMessages([]);
+      setNotes([]);
+    }
+  }, [latestDeletedPhone, isAuthenticated, selectedPhone]);
 
   // Action: Human Agent sends a text message (Optimistic + Background Dispatch)
   const handleSendMessage = async (text: string) => {
@@ -167,14 +175,18 @@ export const App: React.FC = () => {
       timestamp: nowIso
     };
 
-    // 1. Immediately inject into chat UI
+    // 1. Immediately inject into chat UI and move contact to top
     setMessages(prev => [...prev, optimisticMsg]);
-    setContacts(prev => prev.map(c => {
-      if (c.phone === currentPhone) {
-        return { ...c, last_message: text, last_message_at: nowIso };
-      }
-      return c;
-    }));
+    setContacts(prev => {
+      const existing = prev.find(c => c.phone === currentPhone);
+      if (!existing) return prev;
+      const updatedContact: Contact = {
+        ...existing,
+        last_message: text,
+        last_message_at: nowIso
+      };
+      return [updatedContact, ...prev.filter(c => c.phone !== currentPhone)];
+    });
 
     // 2. Dispatch in background
     try {
@@ -220,14 +232,18 @@ export const App: React.FC = () => {
       timestamp: nowIso
     };
 
-    // 1. Immediately inject into chat UI
+    // 1. Immediately inject into chat UI and move contact to top
     setMessages(prev => [...prev, optimisticMsg]);
-    setContacts(prev => prev.map(c => {
-      if (c.phone === currentPhone) {
-        return { ...c, last_message: displayContent, last_message_at: nowIso };
-      }
-      return c;
-    }));
+    setContacts(prev => {
+      const existing = prev.find(c => c.phone === currentPhone);
+      if (!existing) return prev;
+      const updatedContact: Contact = {
+        ...existing,
+        last_message: displayContent,
+        last_message_at: nowIso
+      };
+      return [updatedContact, ...prev.filter(c => c.phone !== currentPhone)];
+    });
 
     // 2. Upload and dispatch in background
     const formData = new FormData();
@@ -322,6 +338,32 @@ export const App: React.FC = () => {
     }
   };
 
+  // Action: Admin completely deletes contact & chat history
+  const handleDeleteContact = async (phone: string) => {
+    const contactToDelete = contacts.find(c => c.phone === phone);
+    const displayName = contactToDelete?.name && contactToDelete.name !== 'Customer'
+      ? `${contactToDelete.name} (+${phone})`
+      : `+${phone}`;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to completely delete ${displayName} and all chat history?\nThis will remove messages, notes, and uploaded media files permanently.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await axios.delete(`/api/contacts/${phone}`);
+      setContacts(prev => prev.filter(c => c.phone !== phone));
+      if (selectedPhone === phone) {
+        setSelectedPhone(null);
+        setMessages([]);
+        setNotes([]);
+      }
+    } catch (err: any) {
+      console.error('Failed to delete contact:', err);
+      alert('Failed to delete contact: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
   // Loading state while verifying token
   if (isAuthLoading) {
     return (
@@ -391,6 +433,7 @@ export const App: React.FC = () => {
               onAddNote={handleAddNote}
               onClose={() => setShowLeadPanel(false)}
               onUpdateName={handleUpdateName}
+              onDeleteContact={handleDeleteContact}
             />
           </div>
         </>

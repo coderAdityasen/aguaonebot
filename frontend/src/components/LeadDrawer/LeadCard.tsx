@@ -14,12 +14,14 @@ import {
   FileText,
   Pencil,
   Check,
-  Layers
+  Layers,
+  Trash2
 } from 'lucide-react';
 import axios from 'axios';
 
 import { downloadLeadsCSV } from '../../utils/export';
 import { countryName, trackLabel, usesNepaliFlovaxForm } from '../../utils/brandLabel';
+import { formatMessageTime } from '../../utils/date';
 
 interface LeadCardProps {
   contact: Contact | null;
@@ -28,6 +30,7 @@ interface LeadCardProps {
   onAddNote: (note: string) => Promise<void>;
   onClose: () => void;
   onUpdateName?: (name: string) => Promise<void>;
+  onDeleteContact?: (phone: string) => Promise<void> | void;
 }
 
 export const LeadCard: React.FC<LeadCardProps> = ({
@@ -36,7 +39,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
   onUpdateLeadStatus,
   onAddNote,
   onClose,
-  onUpdateName
+  onUpdateName,
+  onDeleteContact
 }) => {
   const [newNote, setNewNote] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
@@ -304,7 +308,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({
                 <div key={n.id} className="p-2 bg-yellow-50/60 rounded border border-yellow-200/60 text-xs">
                   <p className="text-gray-800 whitespace-pre-wrap">{n.note}</p>
                   <p className="text-[10px] text-gray-400 mt-1">
-                    {n.agent_name} • {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {n.agent_name} • {formatMessageTime(n.created_at)}
                   </p>
                 </div>
               ))
@@ -313,8 +317,8 @@ export const LeadCard: React.FC<LeadCardProps> = ({
         </div>
       </div>
 
-      {/* Footer with CSV Export */}
-      <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 shrink-0">
+      {/* Footer with CSV Export & Delete Contact */}
+      <div className="p-3 bg-[#f0f2f5] border-t border-gray-200 shrink-0 space-y-2">
         <button
           onClick={handleExportCSV}
           disabled={isExporting}
@@ -325,6 +329,16 @@ export const LeadCard: React.FC<LeadCardProps> = ({
           <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
           <span>{isExporting ? 'Generating CSV...' : 'Export All Leads to CSV'}</span>
         </button>
+
+        {onDeleteContact && (
+          <button
+            onClick={() => onDeleteContact(contact.phone)}
+            className="w-full py-2 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-colors cursor-pointer shadow-xs"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Contact & Chat History</span>
+          </button>
+        )}
       </div>
     </div>
   );

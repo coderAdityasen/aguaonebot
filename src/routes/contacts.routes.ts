@@ -1,9 +1,19 @@
 import { FastifyPluginAsync } from 'fastify';
-import { statements } from '../database/db';
-import { getSession, updateSession, setBotActiveInCache } from '../memory/session-cache';
-import { broadcastContactUpdate } from '../websocket/socket';
+import fs from 'fs';
+import path from 'path';
+import { statements, db } from '../database/db';
+import { getSession, updateSession, setBotActiveInCache, deleteSession } from '../memory/session-cache';
+import { broadcastContactUpdate, broadcastContactDelete } from '../websocket/socket';
 
 export const contactRoutes: FastifyPluginAsync = async (fastify) => {
+  // Helper to ensure SQLite CURRENT_TIMESTAMP (which lacks 'Z') is treated as UTC
+  const normalizeUtc = (str: any) => {
+    if (str && typeof str === 'string' && !str.includes('Z') && !/[+-]\d{2}(:?\d{2})?$/.test(str)) {
+      return str.replace(' ', 'T') + 'Z';
+    }
+    return str;
+  };
+
   // GET /api/contacts?filter=all|handoff|bot_active|qualified&search=
   fastify.get('/api/contacts', async (req) => {
     const query = req.query as { filter?: string; search?: string };
@@ -20,19 +30,38 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
       );
     }
 
+    contacts = contacts.map((c) => ({
+      ...c,
+      last_message_at: normalizeUtc(c.last_message_at),
+      updated_at: normalizeUtc(c.updated_at),
+      created_at: normalizeUtc(c.created_at)
+    }));
+
     return { contacts };
   });
 
   // GET /api/contacts/:phone
   fastify.get('/api/contacts/:phone', async (req, reply) => {
     const { phone } = req.params as { phone: string };
-    const contact = statements.getContact.get(phone) as any;
+    const rawContact = statements.getContact.get(phone) as any;
 
-    if (!contact) {
+    if (!rawContact) {
       return reply.code(404).send({ error: 'Contact not found' });
     }
 
-    const notes = statements.getNotesByPhone.all(phone);
+    const contact = {
+      ...rawContact,
+      last_message_at: normalizeUtc(rawContact.last_message_at),
+      updated_at: normalizeUtc(rawContact.updated_at),
+      created_at: normalizeUtc(rawContact.created_at)
+    };
+
+    const rawNotes = statements.getNotesByPhone.all(phone) as any[];
+    const notes = rawNotes.map((n) => ({
+      ...n,
+      created_at: normalizeUtc(n.created_at)
+    }));
+
     return { contact, notes };
   });
 
@@ -116,5 +145,55 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
     const notes = statements.getNotesByPhone.all(phone);
 
     return { success: true, notes };
+  });
+
+  // DELETE /api/contacts/:phone (Completely delete contact, history, media and cache)
+  fastify.delete('/api/contacts/:phone', async (req, reply) => {
+    const { phone } = req.params as { phone: string };
+    const cleanPhone = phone.trim();
+
+    if (!cleanPhone) {
+      return reply.code(400).send({ error: 'Phone number is required' });
+    }
+
+    try {
+      // 1. Delete associated media files on disk
+      const mediaRows = statements.getMessagesByPhone.all(cleanPhone) as any[];
+      for (const row of mediaRows) {
+        if (row.media_url && typeof row.media_url === 'string' && row.media_url.startsWith('/uploads/')) {
+          const baseName = path.basename(row.media_url);
+          const filePath = path.resolve(process.cwd(), 'data', 'uploads', baseName);
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch (unlinkErr) {
+              console.warn('[Delete Contact] Could not unlink media file:', unlinkErr);
+            }
+          }
+        }
+      }
+
+      // 2. Delete messages and notes
+      db.prepare('DELETE FROM messages WHERE phone = ?').run(cleanPhone);
+      db.prepare('DELETE FROM notes WHERE phone = ?').run(cleanPhone);
+
+      // 3. Delete contact record
+      const delRes = db.prepare('DELETE FROM contacts WHERE phone = ?').run(cleanPhone);
+
+      // 4. Delete from in-memory session cache
+      deleteSession(cleanPhone);
+
+      // 5. Broadcast real-time deletion to all open CRM dashboards
+      broadcastContactDelete(cleanPhone);
+
+      return {
+        success: true,
+        message: `Contact ${cleanPhone} completely deleted`,
+        changes: delRes.changes
+      };
+    } catch (err: any) {
+      console.error('[Delete Contact Error]:', err);
+      return reply.code(500).send({ error: 'Failed to delete contact: ' + err.message });
+    }
   });
 };

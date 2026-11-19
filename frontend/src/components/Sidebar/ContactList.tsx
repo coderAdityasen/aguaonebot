@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Contact } from '../../types';
 import { Search, Bot, User, Award, Settings, RefreshCw, MessageSquare, LogOut, Download } from 'lucide-react';
 import { downloadLeadsCSV } from '../../utils/export';
 import { trackLabel } from '../../utils/brandLabel';
+import { formatChatListTime, parseAppDate } from '../../utils/date';
 
 interface ContactListProps {
   contacts: Contact[];
@@ -47,19 +48,16 @@ export const ContactList: React.FC<ContactListProps> = ({
     }
   };
 
-  const formatTime = (isoString?: string) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
-
   const handoffCount = contacts.filter(c => c.bot_active === 0 || c.lead_status === 'HANDOFF').length;
+
+  // WhatsApp behavior: Always sort conversations so the newest message is at the very top
+  const sortedContacts = useMemo(() => {
+    return [...contacts].sort((a, b) => {
+      const timeA = a.last_message_at ? parseAppDate(a.last_message_at).getTime() : 0;
+      const timeB = b.last_message_at ? parseAppDate(b.last_message_at).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [contacts]);
 
   return (
     <div className={`flex flex-col h-full bg-white border-r border-gray-200 select-none ${className}`}>
@@ -234,14 +232,14 @@ export const ContactList: React.FC<ContactListProps> = ({
 
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-        {contacts.length === 0 ? (
+        {sortedContacts.length === 0 ? (
           <div className="p-8 text-center text-gray-400 flex flex-col items-center justify-center space-y-2">
             <MessageSquare className="w-8 h-8 opacity-40" />
             <p className="text-sm">No conversations found</p>
             <p className="text-xs text-gray-400">Incoming WhatsApp messages will appear here live</p>
           </div>
         ) : (
-          contacts.map((contact) => {
+          sortedContacts.map((contact) => {
             const isSelected = selectedPhone === contact.phone;
             const isBotActive = contact.bot_active === 1 && contact.lead_status !== 'HANDOFF';
 
@@ -283,7 +281,7 @@ export const ContactList: React.FC<ContactListProps> = ({
                       {contact.name && contact.name !== 'Customer' ? contact.name : `+${contact.phone}`}
                     </h2>
                     <span className="text-[11px] text-gray-400 shrink-0">
-                      {formatTime(contact.last_message_at)}
+                      {formatChatListTime(contact.last_message_at)}
                     </span>
                   </div>
 

@@ -8,13 +8,15 @@ interface SocketContextValue {
   isConnected: boolean;
   latestMessage: Message | null;
   latestContactUpdate: Contact | null;
+  latestDeletedPhone: string | null;
 }
 
 const SocketContext = createContext<SocketContextValue>({
   socket: null,
   isConnected: false,
   latestMessage: null,
-  latestContactUpdate: null
+  latestContactUpdate: null,
+  latestDeletedPhone: null
 });
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,6 +25,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isConnected, setIsConnected] = useState(false);
   const [latestMessage, setLatestMessage] = useState<Message | null>(null);
   const [latestContactUpdate, setLatestContactUpdate] = useState<Contact | null>(null);
+  const [latestDeletedPhone, setLatestDeletedPhone] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -59,6 +62,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setLatestContactUpdate(contact);
     });
 
+    s.on('contact:delete', (data: { phone: string }) => {
+      if (data?.phone) {
+        setLatestDeletedPhone(data.phone);
+      }
+    });
+
     setSocket(s);
 
     return () => {
@@ -67,7 +76,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [token, isAuthenticated]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, latestMessage, latestContactUpdate }}>
+    <SocketContext.Provider value={{ socket, isConnected, latestMessage, latestContactUpdate, latestDeletedPhone }}>
       {children}
     </SocketContext.Provider>
   );

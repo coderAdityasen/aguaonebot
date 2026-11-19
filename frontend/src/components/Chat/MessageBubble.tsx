@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Message } from '../../types';
 import { Bot, User, Check, CheckCheck, ExternalLink, X, FileText, Download, Clock, AlertCircle, MapPin, Copy } from 'lucide-react';
+import { formatMessageTime } from '../../utils/date';
 
 interface MessageBubbleProps {
   message: Message;
@@ -71,11 +72,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       phone: match?.[2]?.trim() || ''
     };
   }, [isContact, message.content]);
-
-  const formatTime = (isoString?: string) => {
-    if (!isoString) return '';
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   return (
     <>
@@ -251,7 +247,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
           {/* Timestamp and Delivery Status */}
           <div className="flex items-center justify-end space-x-1 mt-1 text-[10px] text-gray-400">
-            <span>{formatTime(message.timestamp)}</span>
+            <span>{formatMessageTime(message.timestamp)}</span>
             {isOutbound && (
               <span title={
                 message.status === 'read' ? 'Read' :

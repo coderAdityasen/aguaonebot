@@ -3,6 +3,7 @@ import { Contact, Message } from '../../types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { Bot, User, Phone, PanelRight, ArrowLeft, Clock, AlertTriangle, Pencil, Check, X } from 'lucide-react';
+import { parseAppDate } from '../../utils/date';
 
 interface ChatWindowProps {
   contact: Contact | null;
@@ -112,7 +113,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       };
     }
 
-    const lastTime = new Date(lastInboundMsg.timestamp).getTime();
+    const lastTime = parseAppDate(lastInboundMsg.timestamp).getTime();
     const now = Date.now();
     const diffMs = (24 * 60 * 60 * 1000) - (now - lastTime);
 

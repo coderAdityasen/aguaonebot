@@ -144,3 +144,7 @@ export function setBotActiveInCache(phone: string, active: number) {
   session.bot_active = active;
   sessionCache.set(phone, session);
 }
+
+export function deleteSession(phone: string) {
+  sessionCache.delete(phone);
+}
