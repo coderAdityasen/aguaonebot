@@ -617,6 +617,20 @@ export function routeConversation(
     }
   }
 
+  // Nepal Nepali only. A planned shop has no age, and an import license
+  // already means the firm is registered, so those two questions are skipped.
+  const nepalNepali = track.flovax && !track.english && track.terminal === 'pan_registration';
+
+  if (nepalNepali && currentState === 'shop_status' && matched.id === 'planning_new_shop') {
+    nextKey = 'opportunity';
+    updated.experience = 'N/A — Planning New Shop';
+  }
+
+  if (nepalNepali && currentState === 'import_experience') {
+    nextKey = 'handoff';
+    updated.pan_registration = 'N/A — Has Import License';
+  }
+
   return askKnown('ANSWER_ACCEPTED', track, updated, nextKey);
 }
 
