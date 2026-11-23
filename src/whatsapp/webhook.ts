@@ -60,7 +60,8 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
     if (!message) {
       const statusObj = changes?.statuses?.[0];
       if (statusObj) {
-        console.log(`[WhatsApp Status] Message ${statusObj.id} -> ${statusObj.status} (recipient: ${statusObj.recipient_id})`);
+        const statusRecipient = statusObj.recipient_id || statusObj.recipient_user_id || 'unknown';
+        console.log(`[WhatsApp Status] Message ${statusObj.id} -> ${statusObj.status} (recipient: ${statusRecipient})`);
         if (statusObj.status === 'failed' && statusObj.errors?.length) {
           const err = statusObj.errors[0];
           console.error(`❌ [WhatsApp Status Failed] Code: ${err.code} | Title: ${err.title || err.message}`);
@@ -75,8 +76,20 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
-    const phone = message.from;
+    const waContact = changes.contacts?.[0];
+    const fromPhone = String(message.from || waContact?.wa_id || '').trim();
+    const userId = String(message.from_user_id || waContact?.user_id || '').trim();
+    // A username user can arrive with no phone. Their BSUID is the only stable id.
+    const phone = fromPhone || userId;
     const messageId = message.id;
+
+    if (!phone) {
+      console.warn(`⚠️  [WEBHOOK SKIPPED] Message ${messageId || 'unknown'} has no phone and no user id.`);
+      return;
+    }
+    if (!fromPhone) {
+      console.log(`ℹ️  [BSUID] Phone hidden by WhatsApp. Contact key is ${userId}`);
+    }
 
     // Deduplication check
     if (isDuplicateMessage(messageId)) {
@@ -212,7 +225,7 @@ export const webhookRoutes: FastifyPluginAsync = async (fastify) => {
       incomingText = `📦 [${message.type || 'Message'}]`;
     }
 
-    const customerName = changes.contacts?.[0]?.profile?.name || 'Customer';
+    const customerName = waContact?.profile?.name || waContact?.profile?.username || 'Customer';
     const phoneNumberId = changes.metadata?.phone_number_id || config.whatsappPhoneNumberId;
 
     // Structured Console Log for Received Message

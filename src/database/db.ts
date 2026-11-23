@@ -65,6 +65,20 @@ try {
 
   // Auto-migrate legacy brand names from previous version
   db.exec("UPDATE contacts SET brand = 'claren' WHERE LOWER(brand) = 'aguaone'");
+
+  // Username users used to be saved once per message with a null phone.
+  const removed = db.prepare("DELETE FROM contacts WHERE phone IS NULL OR TRIM(phone) = ''").run();
+  if (removed.changes > 0) {
+    console.log(`[DB] Removed ${removed.changes} contacts saved without a phone`);
+  }
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS contacts_require_phone
+    BEFORE INSERT ON contacts
+    WHEN NEW.phone IS NULL OR TRIM(NEW.phone) = ''
+    BEGIN
+      SELECT RAISE(ABORT, 'contacts.phone is required');
+    END;
+  `);
 } catch (e) {
   console.warn('[DB Migration Warning]:', e);
 }

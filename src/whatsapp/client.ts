@@ -61,12 +61,22 @@ function enqueueWithRateLimit(
   return chained;
 }
 
+/** A Cloud API phone is digits only. Anything else is a BSUID, for example US.1349... */
+export function isPhoneNumber(id: string): boolean {
+  return /^\d{6,15}$/.test(id);
+}
+
+/** Phone numbers go in `to`. A hidden-number user is addressed with `recipient`. */
+export function addressFields(id: string): { to: string } | { recipient: string } {
+  return isPhoneNumber(id) ? { to: id } : { recipient: id };
+}
+
 // Public API: rate-limited wrapper (called by webhook & other services)
 export function sendWhatsAppMessage(
   phoneNumberId: string,
   payload: any
 ): Promise<WhatsAppSendResult> {
-  const recipient = payload?.to;
+  const recipient = payload?.to || payload?.recipient;
 
   // Safety: if no recipient (shouldn't happen), send directly without queue
   if (!recipient) {
@@ -96,7 +106,9 @@ async function doSendWhatsAppMessage(
     };
   }
 
-  const url = `https://graph.facebook.com/v21.0/${targetPhoneId}/messages`;
+  // BSUID replies need a Graph version that accepts `recipient`. Phone sends stay on v21.
+  const version = payload?.recipient && !payload?.to ? 'v23.0' : 'v21.0';
+  const url = `https://graph.facebook.com/${version}/${targetPhoneId}/messages`;
 
   try {
     const response = await metaHttpClient.post(url, payload, {
@@ -114,9 +126,10 @@ async function doSendWhatsAppMessage(
     const errDetails = error.response?.data?.error || error.message;
 
     // Extra safety: if Meta still rate-limits, force cooldown for next msg
-    if (errDetails?.code === 131056 && payload?.to) {
-      console.warn(`🚨 [RATE LIMIT HIT] Meta blocked msg to +${payload.to}. Forcing extra 5s cooldown.`);
-      lastSendTime.set(payload.to, Date.now() + 5000);
+    const limited = payload?.to || payload?.recipient;
+    if (errDetails?.code === 131056 && limited) {
+      console.warn(`🚨 [RATE LIMIT HIT] Meta blocked msg to ${limited}. Forcing extra 5s cooldown.`);
+      lastSendTime.set(limited, Date.now() + 5000);
     }
 
     console.error('[WhatsAppClient] Failed to send message via Meta Graph API:', errDetails);
@@ -136,7 +149,7 @@ export function buildInteractiveListPayload(
   return {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to,
+    ...addressFields(to),
     type: 'interactive',
     interactive: {
       type: 'list',
@@ -162,7 +175,7 @@ export function buildTextPayload(to: string, bodyText: string) {
   return {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to,
+    ...addressFields(to),
     type: 'text',
     text: { body: bodyText }
   };
@@ -194,7 +207,7 @@ export function buildMediaPayload(
   return {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
-    to,
+    ...addressFields(to),
     type: mediaType,
     [mediaType]: mediaObj
   };

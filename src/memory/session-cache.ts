@@ -125,6 +125,10 @@ export function getSession(phone: string): ContactSession {
 }
 
 export function updateSession(session: ContactSession) {
+  if (!session.phone) {
+    console.error('[SessionCache] Refusing to save a contact with no phone');
+    return;
+  }
   const now = new Date().toISOString();
   session.last_message_at = now;
   session.updated_at = now;
